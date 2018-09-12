@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ikats.scheduler.ibatis.mapper.GYRecordMapper" >
+
+	<!-- 管易对接的报文 , 数据记录表 -->
+
+    <!-- 字段实体关系映射 -->
+    <resultMap id="BaseResultMap" type="com.ikats.scheduler.entity.bean.GYRecordBean" >
+        <id column="id" property="id" jdbcType="BIGINT" />  <!--  -->
+        <result column="gy_request" property="gyRequest" jdbcType="VARCHAR" />  <!--  -->
+        <result column="gy_response" property="gyResponse" jdbcType="VARCHAR" />  <!--  -->
+        <result column="app_key" property="appKey" jdbcType="VARCHAR" />  <!--  -->
+        <result column="success" property="success" jdbcType="VARCHAR" />  <!--  -->
+        <result column="face" property="face" jdbcType="VARCHAR" />  <!--  -->
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP" />  <!--  -->
+    </resultMap>
+
+    <!-- 字段列表 -->
+    <sql id="Base_Column_List" >
+ 	     id  <!--  -->
+ 	    ,gy_request  <!--  -->
+ 	    ,gy_response  <!--  -->
+ 	    ,app_key  <!--  -->
+ 	    ,success  <!--  -->
+ 	    ,face  <!--  -->
+ 	    ,create_time  <!--  -->
+    </sql>
+
+    <!-- 表名称 -->
+    <sql id="Base_Table_Name" >
+    gy_record
+    </sql>
+
+    <!-- 常用的查询条件集合 -->
+	<sql id="Filter_Where">
+		1=1
+		<if test="express.containsKey('id') and express.id !=''"> and id = '${express.id}' </if>
+		<if test="express.containsKey('gyRequest') and express.gyRequest !=''"> and gy_request = '${express.gyRequest}' </if>
+		<if test="express.containsKey('gyResponse') and express.gyResponse !=''"> and gy_response = '${express.gyResponse}' </if>
+		<if test="express.containsKey('appKey') and express.appKey !=''"> and app_key = '${express.appKey}' </if>
+		<if test="express.containsKey('success') and express.success !=''"> and success = '${express.success}' </if>
+		<if test="express.containsKey('face') and express.face !=''"> and face = '${express.face}' </if>
+		<if test="express.containsKey('createTime') and express.createTime !=''"> and create_time = '${express.createTime}' </if>
+	</sql>
+
+    <!-- 保存单条记录 -->
+	<insert id="insert" parameterType="com.ikats.scheduler.entity.bean.GYRecordBean" useGeneratedKeys="true" keyProperty="id">
+		insert into <include refid="Base_Table_Name" />  (
+ 	    	 gy_request
+ 	    	,gy_response
+ 	    	,app_key
+ 	    	,success
+ 	    	,face
+ 	    	,create_time
+		)
+		values (
+		#{gyRequest,jdbcType=VARCHAR}
+		,#{gyResponse,jdbcType=VARCHAR}
+		,#{appKey,jdbcType=VARCHAR}
+		,#{success,jdbcType=VARCHAR}
+		,#{face,jdbcType=VARCHAR}
+		,#{createTime,jdbcType=TIMESTAMP}
+		)
+	</insert>
+
+
+    <!-- 保存一批记录 -->
+    <insert id="insertList" parameterType="java.util.List" >
+        insert into <include refid="Base_Table_Name" /> (
+ 	    	 gy_request
+ 	    	,gy_response
+ 	    	,app_key
+ 	    	,success
+ 	    	,face
+ 	    	,create_time
+		)
+        values
+        <foreach collection="list" item="bean" index="index" separator="," >
+            (
+ 	    	     #{bean.gyRequest,jdbcType=VARCHAR}
+ 	    	    ,#{bean.gyResponse,jdbcType=VARCHAR}
+ 	    	    ,#{bean.appKey,jdbcType=VARCHAR}
+ 	    	    ,#{bean.success,jdbcType=VARCHAR}
+ 	    	    ,#{bean.face,jdbcType=VARCHAR}
+ 	    	    ,#{bean.createTime,jdbcType=TIMESTAMP}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 根据ID更新记录 -->
+	<update id="update" parameterType="com.ikats.scheduler.entity.bean.GYRecordBean">
+		update <include refid="Base_Table_Name" />
+		<set>
+			<if test="gyRequest != null "> gy_request = #{gyRequest,jdbcType=VARCHAR}, </if>
+			<if test="gyResponse != null "> gy_response = #{gyResponse,jdbcType=VARCHAR}, </if>
+			<if test="appKey != null "> app_key = #{appKey,jdbcType=VARCHAR}, </if>
+            <if test="success != null "> success = #{success,jdbcType=VARCHAR}, </if>
+            <if test="face != null "> face = #{face,jdbcType=VARCHAR}, </if>
+			<if test="createTime != null "> create_time = #{createTime,jdbcType=TIMESTAMP}, </if>
+		</set>
+		where id = #{id,jdbcType=BIGINT}
+	</update>
+
+    <!-- 根据ID删除记录 -->
+	<delete id="delete" parameterType="java.lang.Long">
+		delete from <include refid="Base_Table_Name" />
+		where id = #{id,jdbcType=BIGINT}
+	</delete>
+
+    <!-- 根据ID查询记录 -->
+	<select id="selectByKey" resultMap="BaseResultMap" parameterType="java.lang.Long">
+		select <include refid="Base_Column_List" />
+		from <include refid="Base_Table_Name" />
+		where and id = #{id,jdbcType=BIGINT}
+    </select>
+
+	<!-- 查询所有记录 -->
+	<select id="selectCount" resultType="java.lang.Long">
+		select count(1)
+		from <include refid="Base_Table_Name" />
+		where <include refid="Filter_Where" />
+	</select>
+
+	<!-- 筛选记录 -->
+	<select id="selectByQuery" resultMap="BaseResultMap">
+		select <include refid="Base_Column_List" />
+		from <include refid="Base_Table_Name" />
+		where <include refid="Filter_Where" />
+		order by id desc
+	</select>
+
+    <!-- 分页查询 -->
+    <select id="pageByQuery" resultMap="BaseResultMap">
+         select <include refid="Base_Column_List"/>
+         from <include refid="Base_Table_Name" />
+		 where <include refid="Filter_Where" />
+         order by id desc
+		limit ${page.pageSize} offset ${page.offset}
+    </select>
+</mapper>

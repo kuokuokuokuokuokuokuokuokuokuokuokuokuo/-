@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="Package-Job-Service" />
+        <module name="Scheduler-Controller" />
+        <module name="Scheduler-Entity" />
+        <module name="Scheduler-Ibatis" />
+        <module name="Scheduler-Interface" />
+        <module name="Scheduler-Job" />
+        <module name="Scheduler-Logic" />
+        <module name="Scheduler-Repository" />
+        <module name="Scheduler-Service" />
+        <module name="Scheduler-Util" />
+        <module name="Scheduler-Web" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="Ikats-Scheduler" target="1.5" />
+      <module name="Package-Job-Service" target="1.5" />
+      <module name="Scheduler-Controller" target="1.5" />
+      <module name="Scheduler-Entity" target="1.5" />
+      <module name="Scheduler-Ibatis" target="1.6" />
+      <module name="Scheduler-Interface" target="1.5" />
+      <module name="Scheduler-Job" target="1.5" />
+      <module name="Scheduler-Logic" target="1.5" />
+      <module name="Scheduler-Package" target="1.5" />
+      <module name="Scheduler-Repository" target="1.5" />
+      <module name="Scheduler-Service" target="1.6" />
+      <module name="Scheduler-Util" target="1.5" />
+      <module name="Scheduler-Web" target="1.5" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

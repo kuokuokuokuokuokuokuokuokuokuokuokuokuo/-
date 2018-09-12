@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/Ikats-Scheduler.iml" filepath="$PROJECT_DIR$/Ikats-Scheduler.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Scheduler-Package/Package-Job-Service/Package-Job-Service.iml" filepath="$PROJECT_DIR$/Scheduler-Package/Package-Job-Service/Package-Job-Service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Scheduler-Controller/Scheduler-Controller.iml" filepath="$PROJECT_DIR$/Scheduler-Controller/Scheduler-Controller.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Scheduler-Entity/Scheduler-Entity.iml" filepath="$PROJECT_DIR$/Scheduler-Entity/Scheduler-Entity.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Scheduler-Ibatis/Scheduler-Ibatis.iml" filepath="$PROJECT_DIR$/Scheduler-Ibatis/Scheduler-Ibatis.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Scheduler-Interface/Scheduler-Interface.iml" filepath="$PROJECT_DIR$/Scheduler-Interface/Scheduler-Interface.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Scheduler-Job/Scheduler-Job.iml" filepath="$PROJECT_DIR$/Scheduler-Job/Scheduler-Job.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Scheduler-Logic/Scheduler-Logic.iml" filepath="$PROJECT_DIR$/Scheduler-Logic/Scheduler-Logic.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Scheduler-Package/Scheduler-Package.iml" filepath="$PROJECT_DIR$/Scheduler-Package/Scheduler-Package.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Scheduler-Repository/Scheduler-Repository.iml" filepath="$PROJECT_DIR$/Scheduler-Repository/Scheduler-Repository.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Scheduler-Service/Scheduler-Service.iml" filepath="$PROJECT_DIR$/Scheduler-Service/Scheduler-Service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Scheduler-Util/Scheduler-Util.iml" filepath="$PROJECT_DIR$/Scheduler-Util/Scheduler-Util.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Scheduler-Web/Scheduler-Web.iml" filepath="$PROJECT_DIR$/Scheduler-Web/Scheduler-Web.iml" />
+    </modules>
+  </component>
+</project>

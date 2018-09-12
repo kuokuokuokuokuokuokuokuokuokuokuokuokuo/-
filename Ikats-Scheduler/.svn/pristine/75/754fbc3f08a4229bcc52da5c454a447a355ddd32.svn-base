@@ -1,0 +1,38 @@
+# Default Properties file for use by StdSchedulerFactory
+# to create a Quartz Scheduler Instance, if a different
+# properties file is not explicitly specified.
+
+org.quartz.scheduler.instanceName=DefaultQuartzScheduler
+org.quartz.scheduler.rmi.export=false
+org.quartz.scheduler.rmi.proxy=false
+org.quartz.scheduler.wrapJobExecutionInUserTransaction=false
+
+org.quartz.threadPool.class=org.quartz.simpl.SimpleThreadPool
+org.quartz.threadPool.threadCount=10
+org.quartz.threadPool.threadPriority=5
+org.quartz.threadPool.threadsInheritContextClassLoaderOfInitializingThread=true
+
+#jobStoreTX TEST
+org.quartz.jobStore.misfireThreshold=60000
+# TX method 使用现有的数据源 JobStoreCMT
+org.quartz.jobStore.class=org.quartz.impl.jdbcjobstore.JobStoreTX
+#jdbc Delegate 改成 pgsql
+org.quartz.jobStore.driverDelegateClass=org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+#org.quartz.jobStore.driverDelegateClass:org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+#table prefix
+org.quartz.jobStore.tablePrefix=qrtz_
+#  myDataSource
+org.quartz.jobStore.dataSource=myDS
+
+#MQ
+#org.quartz.dataSource.myDS.driver=com.mysql.jdbc.Driver
+#org.quartz.dataSource.myDS.URL=jdbc:mysql://101.251.243.131:3306/test
+#org.quartz.dataSource.myDS.user=esinotranswms
+#org.quartz.dataSource.myDS.password=eSinotransDB.201603
+
+# PG
+#org.quartz.dataSource.myDS.driver=org.postgresql.Driver
+#org.quartz.dataSource.myDS.URL=jdbc:postgresql://47.94.43.221:5432/quartz
+#org.quartz.dataSource.myDS.user=postgres
+#org.quartz.dataSource.myDS.password=ikats@2017!@#
+#org.quartz.dataSource.myDS.maxConnections=10

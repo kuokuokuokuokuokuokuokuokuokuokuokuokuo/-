@@ -1,0 +1,152 @@
+import React, {Component} from 'react';
+import { observer } from "mobx-react";
+import {Breadcrumb,Icon,Modal,Pagination,Table,Tooltip } from 'antd';
+import JobListForm from "./JobListForm";
+import EditJobForm from "./EditJobForm";
+import Css from "./JobStyle";
+const confirm = Modal.confirm;
+
+
+@observer
+export default class JobListContainer extends Component
+{
+    constructor(props){
+        super(props);
+        this.state={
+            editVisible: false,
+            cron :'',
+            triggerName :'',
+            triggerGroup :''
+        };
+        this.page = {pageNum: 1, pageSize: 10};
+        this.data = {};
+        props.store.selectJobs();
+    }
+    changePage(page){
+        this.page.pageNum = page;
+        this.props.store.selectJobs(this.data,this.page);
+        this.props.store.JobTotalCount(this.data);
+    }
+    getListForm(form){
+        this.listForm = form;
+    }
+    search(){
+        this.listForm.validateFields((err, data) =>
+        {
+            if(!err){
+                this.page = {pageNum: 1, pageSize: 10};
+                this.data = data;
+                this.props.store.selectJobs();
+            }
+        })
+    }
+    delete=(jobName,jobGroup)=>{
+        confirm
+        ({
+            title: '确定要删除该任务吗？',
+            onOk:()=>{
+                this.props.store.deleteJob(jobName,jobGroup);
+            },
+            onCancel(){}
+        })
+    };
+    pause=(jobName,jobGroup)=>{
+        confirm
+        ({
+            title: '确定要暂停该任务吗？',
+            onOk:()=>{
+                this.props.store.pauseJob(jobName,jobGroup);
+            },
+            onCancel(){}
+        })
+    };
+    resume=(jobName,jobGroup)=>{
+        confirm
+        ({
+            title: '确定要恢复该任务吗？',
+            onOk:()=>{
+                this.props.store.resumeJob(jobName,jobGroup);
+            },
+            onCancel(){}
+        })
+    };
+    showModal = (triggerName,triggerGroup,cron) => {
+        this.setState({
+            editVisible: true,
+            cron : cron,
+            triggerName : triggerName,
+            triggerGroup:triggerName
+        });
+    };
+    handleEditOk = (e) => {
+        this.editJobForm.validateFields((err, data) =>
+        {
+            if(!err)
+            {
+                let cron = this.editJobForm.getFieldsValue("cron");
+                this.props.store.editJob(this.state.triggerName,this.state.triggerGroup,cron);
+                this.setState({
+                    editVisible: false,
+                });
+            }
+        });
+    };
+    handleEditCancel = (e) => {
+        this.setState({
+            editVisible: false
+        });
+    };
+    getEditJobForm(form) {
+        this.editJobForm = form;
+    };
+    render(){
+        let {style}=Css;
+        let store = this.props.store;
+        const columns = [
+            {title: '任务名', dataIndex: 'jobName', key: 'jobName'},
+            {title: '任务组', dataIndex: 'jobGroup', key: 'jobGroup'},
+            {title: '任务备注', dataIndex: 'jobDesp', key: 'jobDesp'},
+            {title: '触发器名', dataIndex: 'triggerName', key: 'triggerName'},
+            {title: '触发器组', dataIndex: 'triggerGroup', key: 'triggerGroup'},
+            {title: '任务类', dataIndex: 'className', key: 'className'},
+            {title: '开始时间', dataIndex: 'startTime', key: 'startTime'},
+            {title: '结束时间', dataIndex: 'endTime', key: 'endTime'},
+            {title: '时间表达式', dataIndex: 'cron', key: 'cron'},
+            {title: '任务状态', dataIndex: 'state', key: 'state'},
+            {title: '操作', key: 'action', render: (text, item) => (
+                <div>
+                    <Tooltip placement="top" title="编辑" arrowPointAtCenter>
+                        <a onClick={()=>{this.showModal(item.triggerName,item.triggerGroup,item.cron)}}><Icon type="edit" /></a><span className="ant-divider" />
+                    </Tooltip>
+                    <Tooltip placement="top" title="删除" arrowPointAtCenter>
+                        <a onClick={()=>{this.delete(item.jobName,item.jobGroup)}}><Icon type="delete" /></a><span className="ant-divider" />
+                    </Tooltip>
+                    <Tooltip placement="top" title="暂停" arrowPointAtCenter>
+                        <a onClick={()=>{this.pause(item.jobName,item.jobGroup)}}><Icon type="pause" /></a><span className="ant-divider" />
+                    </Tooltip>
+                    <Tooltip placement="top" title="启动" arrowPointAtCenter>
+                        <a onClick={()=>{this.resume(item.jobName,item.jobGroup)}}><Icon type="play-circle-o" /></a>
+                    </Tooltip>
+                </div>
+            )}
+        ];
+        return(
+            <div>
+                <Modal
+                    title="编辑任务"
+                    visible={this.state.editVisible}
+                    onOk={this.handleEditOk}
+                    onCancel={this.handleEditCancel}
+                >
+                    <EditJobForm
+                        postForm = {this.getEditJobForm.bind(this)}
+                        cron = {this.state.cron}
+                    />
+                </Modal>
+                <JobListForm store={this.props.store} searchData={this.data} search={this.search.bind(this)} postForm={this.getListForm.bind(this)}/>
+                <Table columns={columns} dataSource={[...store.JobDataTable]} pagination={false} rowKey={item => item.id} size="middle" className="pd" style={style.FormStyle}/>
+                <Pagination style={style.Pagination} current={this.page.pageNum} pageSize={this.page.pageSize} total={store.totalCount} onChange={this.changePage.bind(this)}/>
+            </div>
+        )
+    }
+}

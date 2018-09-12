@@ -1,0 +1,165 @@
+package com.ikats.scheduler.logic;
+
+import com.ikats.chigoose.ams.entity.bean.AccountitemBean;
+import com.ikats.chigoose.ams.entity.dto.AccountitemDto;
+import com.ikats.chigoose.ams.entity.query.AccountitemQuery;
+import com.ikats.chigoose.ams.service.IAccountitemService;
+import com.ikats.chigoose.dms.entity.bean.OrderDetailBean;
+import com.ikats.chigoose.dms.entity.dto.OrderDto;
+import com.ikats.chigoose.dms.entity.query.OrderQuery;
+import com.ikats.chigoose.dms.service.IOrderService;
+import com.ikats.scheduler.entity.bean.DmsSettlementRecordBean;
+import com.ikats.scheduler.entity.bean.JobMessage;
+import com.ikats.scheduler.entity.exception.DmsOrderSettlementException;
+import com.ikats.scheduler.repository.IDmsSettlementRecordRepository;
+import com.ikats.wharf.config.annotation.Reference;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.*;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/11/17 14:11.
+ * @Description : Indulge in study , wasting away
+ */
+@Component
+@Transactional
+public class DmsSettlementRecordLogic extends AbstractLogic {
+    @Autowired
+    private IDmsSettlementRecordRepository recordRepository;
+
+    @Reference(timeout = 300000)
+    private IOrderService orderService;
+
+    @Reference(timeout = 300000)
+    private IAccountitemService accountitemService;
+
+    public void addRecord(DmsSettlementRecordBean bean) {
+        int count = this.recordRepository.insert(bean);
+        if (count != 1) {
+            this.setSuccess(false);
+            this.setMessage("添加失败!");
+            return;
+        }
+        this.setSuccess(true);
+    }
+
+    public DmsSettlementRecordBean record(Long id) {
+        DmsSettlementRecordBean bean = this.recordRepository.selectByKey(id);
+        if (null == bean) {
+            this.setSuccess(false);
+            this.setMessage("未找到!");
+            return bean;
+        }
+        this.setSuccess(true);
+        return bean;
+    }
+
+    /**
+     * Dms 订单出库后结算到 Ams
+     *
+     * @return
+     */
+    public JobMessage dmsOrderDoSettlement() {
+        JobMessage message = new JobMessage();
+
+        OrderQuery query = new OrderQuery();
+        OrderDto dto = this.orderService.queryOutBoundOrder(query);
+        if (null == dto.getOrderSkulist() || dto.getOrderSkulist().size() == 0)
+        {
+            message.setSuccess(true);
+            message.setMessage("-- DMS -- 无订单数据更新");
+            return message;
+        }
+
+        List<OrderDetailBean> detailBeans = dto.getOrderSkulist();
+        List<DmsSettlementRecordBean> dmsBeans = this.recordRepository.selectAllRecord();
+        //去掉已处理过的数据
+        for (DmsSettlementRecordBean bean : dmsBeans) {
+            String orderNo = bean.getOrderNumber();
+            for (Iterator iter = detailBeans.iterator(); iter.hasNext(); ) {
+                OrderDetailBean detailBean = (OrderDetailBean) iter.next();
+                if (detailBean.getOrderNo().equals(orderNo)) {
+                    iter.remove();
+                }
+            }
+        }
+
+        if (detailBeans.size() == 0)
+        {
+            message.setSuccess(true);
+            message.setMessage(" DMS-Order 无订单数据更新");
+            return message;
+        }
+
+        Map<String, AccountitemBean> account = new HashMap<String, AccountitemBean>();
+        Map<String, DmsSettlementRecordBean> record = new HashMap<String, DmsSettlementRecordBean>();
+
+        for (OrderDetailBean detailBean : detailBeans) {
+            //结算数据整理
+            if (!account.containsKey(detailBean.getOrderNo())) {
+                AccountitemBean itemBean = new AccountitemBean();
+                //订单编号
+                itemBean.setRefNo(detailBean.getOrderNo());
+                //结算对象
+                itemBean.setSettlementObjectId(detailBean.getClientOrgCode());
+                //默认结算币种 CNY
+                itemBean.setCurrency("CNY");
+                //结算金额
+                itemBean.setAmount(detailBean.getChannelPrice().multiply(new BigDecimal(detailBean.getItemCount())));
+                //备注
+                itemBean.setNote("---------- LK_TEST ----------");
+                account.put(detailBean.getOrderNo(), itemBean);
+            } else {
+                AccountitemBean itemBean = account.get(detailBean.getOrderNo());
+                BigDecimal amount = itemBean.getAmount();
+                amount = amount.add(detailBean.getChannelPrice().multiply(new BigDecimal(detailBean.getItemCount())));
+                itemBean.setAmount(amount);
+                account.remove(detailBean.getOrderNo());
+                account.put(detailBean.getOrderNo(), itemBean);
+            }
+
+            //dms结算数据整理
+            if (!record.containsKey(detailBean.getOrderNo())) {
+                DmsSettlementRecordBean recordBean = new DmsSettlementRecordBean();
+                recordBean.setOrderNumber(detailBean.getOrderNo());
+                recordBean.setAmounts(detailBean.getChannelPrice().multiply(new BigDecimal(detailBean.getItemCount())).doubleValue());
+                record.put(detailBean.getOrderNo(), recordBean);
+            } else {
+                DmsSettlementRecordBean recordBean = record.get(detailBean.getOrderNo());
+                double amount = recordBean.getAmounts();
+                recordBean.setAmounts(new BigDecimal(amount).add(detailBean.getChannelPrice()).multiply(new BigDecimal(detailBean.getItemCount())).doubleValue());
+                record.remove(detailBean.getOrderNo());
+                record.put(detailBean.getOrderNo(), recordBean);
+            }
+        }
+
+        //插入结算系统
+        AccountitemQuery accountitemQuery = new AccountitemQuery();
+        List<AccountitemBean> accountItemBeans = new ArrayList<AccountitemBean>();
+        accountItemBeans.addAll(account.values());
+        accountitemQuery.setDataTable(accountItemBeans);
+        AccountitemDto accountitemDto = accountitemService.batchNew(accountitemQuery);
+        if(accountitemDto.getCount() == 0)
+        {
+            throw new DmsOrderSettlementException("结算明细插入失败!");
+        }
+
+        //插入dms_order计算表
+        List<DmsSettlementRecordBean> recordBeans = new ArrayList<DmsSettlementRecordBean>();
+        recordBeans.addAll(record.values());
+        int recordCount = recordRepository.insertList(recordBeans);
+        if(recordCount == 0)
+        {
+            throw new DmsOrderSettlementException("Dms结算记录插入失败");
+        }
+
+        message.setSuccess(true);
+        message.setMessage(" DMS-Order 结算订单数 :" + accountItemBeans.size());
+
+        return message;
+    }
+}

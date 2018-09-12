@@ -1,0 +1,26 @@
+package com.ikats.scheduler.util;
+
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/11/15 14:33.
+ * @Description : Indulge in study , wasting away
+ */
+public class TestRabbitConsume
+{
+    private static final String QUEUE_NAME = "Query_lk_1";
+
+    public static void main(String[] args) throws IOException,TimeoutException
+    {
+        SimpleConsumer consumer1 = new SimpleConsumer(QUEUE_NAME);
+        SimpleConsumer consumer2 = new SimpleConsumer(QUEUE_NAME);
+
+        Thread thread1 = new Thread(consumer1);
+        Thread thread2 = new Thread(consumer2);
+
+        thread1.start();
+        thread2.start();
+    }
+}

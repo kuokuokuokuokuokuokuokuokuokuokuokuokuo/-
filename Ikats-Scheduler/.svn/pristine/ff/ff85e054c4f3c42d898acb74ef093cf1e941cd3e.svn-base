@@ -1,0 +1,24 @@
+//package com.ikats.scheduler.logic;
+//
+//import org.quartz.Scheduler;
+//import org.quartz.TriggerKey;
+//import org.quartz.SchedulerFactory;
+//import org.quartz.impl.StdSchedulerFactory;
+//
+///**
+// * @Author : liu kuo
+// * @Date : 2017/11/1 15:44.
+// * @Description : Indulge in study , wasting away
+// */
+//public class SchedulerStart
+//{
+//    public static void main(String[] args) throws Exception
+//    {
+//        SchedulerFactory schedulerFactory = new StdSchedulerFactory();
+//        Scheduler sched = schedulerFactory.getScheduler();
+//        TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroupName);
+//        sched.pauseTrigger(triggerKey);// 停止触发器
+//        sched.unscheduleJob(triggerKey);// 移除触发器
+//        sched.deleteJob(JobKey.jobKey(jobName, jobGroupName));// 删除任务
+//    }
+//}

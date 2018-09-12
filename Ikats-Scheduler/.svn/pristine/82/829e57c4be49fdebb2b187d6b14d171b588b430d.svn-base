@@ -1,0 +1,17 @@
+package com.ikats.scheduler.service;
+
+import com.ikats.scheduler.entity.dto.DmsSettlementRecordDto;
+import com.ikats.scheduler.entity.query.DmsSettlementRecordQuery;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/11/17 14:10.
+ * @Description : Indulge in study , wasting away
+ */
+public interface IDmsSettlementRecordService
+{
+
+    DmsSettlementRecordDto newRecord(DmsSettlementRecordQuery query);
+
+    DmsSettlementRecordDto record(DmsSettlementRecordQuery query);
+}

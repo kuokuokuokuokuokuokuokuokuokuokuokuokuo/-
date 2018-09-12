@@ -1,0 +1,82 @@
+package com.ikats.scheduler.job;
+
+import com.ikats.scheduler.entity.bean.JSTPurchaseOrderBean;
+import com.ikats.scheduler.entity.enumerate.GYStatus;
+import com.ikats.scheduler.logic.JSTPurchaseOrderLogic;
+import com.ikats.scheduler.util.OmsJSTPostUtil;
+import com.ikats.scheduler.util.OmsPostUtil;
+import com.ikats.scheduler.util.SystemOutMessage;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.quartz.QuartzJobBean;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * @Author: Zhao Jianzhen
+ * @Date: Created in 16:58 2018/1/3
+ * @Description:
+ */
+public class OmsSendJSTPurchaseOrderJob extends QuartzJobBean {
+
+    @Autowired
+    private JSTPurchaseOrderLogic orderLogic;
+    @Override
+    protected void executeInternal(JobExecutionContext jobExecutionContext) throws JobExecutionException {
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SystemOutMessage.start("OMS_SendPurchaseOrder",sdf.format(new Date()));
+        if(null == orderLogic)
+        {
+            SystemOutMessage.body("false 系统异常");
+            return;
+        }
+
+        List<JSTPurchaseOrderBean> orderSendJob = orderLogic.getOrderSendJob();
+
+        if (orderSendJob==null){
+            SystemOutMessage.body(" -- 没有需要发送的采购订单 -- ");
+            return;
+        }
+        ArrayList<JSTPurchaseOrderBean> updateBeans = new ArrayList<JSTPurchaseOrderBean>();
+        try {
+            for (int i=0;i<orderSendJob.size();i++){
+                JSTPurchaseOrderBean bean = orderSendJob.get(i);
+                String request = bean.getOmsRequest();
+                String result = OmsJSTPostUtil.PostXml(request);
+                if (result!=null){
+                    JSTPurchaseOrderBean update = new JSTPurchaseOrderBean();
+                    update.setId(bean.getId());
+                    update.setTimes(bean.getTimes() + 1);
+                    update.setSendTime(new Date());
+                    if(result.contains("<success>true</success>"))
+                    {
+                        update.setState(GYStatus.SEND_OK.getValue());
+                    }
+                    else
+                    {
+                        update.setState(GYStatus.SEND_ERROR.getValue());
+                    }
+                    update.setReturnTime(new Date());
+                    update.setOmsResponse(result);
+                    updateBeans.add(update);
+                }
+            }
+        }catch (Exception ex){
+            SystemOutMessage.body(" false  " + ex.getMessage());
+        }finally
+        {
+            for(JSTPurchaseOrderBean bean : updateBeans)
+            {
+                this.orderLogic.update(bean);
+            }
+        }
+        SystemOutMessage.end("OMS_SendJSTPurchaseOrder",sdf.format(new Date()));
+
+
+    }
+}

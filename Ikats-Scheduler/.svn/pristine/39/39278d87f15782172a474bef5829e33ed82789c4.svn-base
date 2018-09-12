@@ -1,0 +1,38 @@
+package com.ikats.scheduler.logic;
+
+
+import org.quartz.*;
+import org.quartz.impl.StdSchedulerFactory;
+import java.util.Date;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/11/1 10:43.
+ * @Description : Indulge in study , wasting away
+ */
+public abstract class JobDetailsLogic
+{
+    public static final String CURRENT_SCHEDULER_PROP = "myScheduler";
+
+    public void addJobDetails() throws SchedulerException
+    {
+        JobDetail job = new JobDetail();
+//        job.setJobClass(.class);
+        job.setName("job_lk_Q2");
+        job.setGroup("jgroup_lk_Q2");
+        CronTrigger trigger = new CronTrigger();
+        trigger.setName("trigger_lk_Q2");
+        trigger.setGroup("tgroup_lk_Q2");
+        trigger.setDescription("触发器的备注~");
+        trigger.setNextFireTime(new Date());
+        trigger.setPreviousFireTime(new Date());
+        trigger.setPriority(0);
+        trigger.setStartTime(new Date());
+        trigger.setMisfireInstruction(0);
+
+        SchedulerFactory schedulerFactory = new StdSchedulerFactory();
+        Scheduler scheduler = schedulerFactory.getScheduler();
+        scheduler.scheduleJob(job, trigger);
+        scheduler.start();
+    }
+}

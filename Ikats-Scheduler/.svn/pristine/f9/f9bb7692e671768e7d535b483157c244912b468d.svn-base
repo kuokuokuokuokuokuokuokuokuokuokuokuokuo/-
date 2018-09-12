@@ -1,0 +1,34 @@
+import React, {Component} from 'react';
+import { observer } from "mobx-react";
+import {Row,Col,Layout} from 'antd';
+const { Content } = Layout;
+
+@observer
+export default class ServiceTestContainer extends Component
+{
+    constructor()
+    {
+        super();
+    }
+
+    conLogin(values)
+    {
+        this.props.store.login(values);
+    }
+    render()
+    {
+
+        let ht=window.innerHeight;
+        let store=this.props.store;
+        return (
+            <Content style={{ width:'100%' ,height:ht}}>
+                <Row type="flex">
+                    <Col span={2}>1</Col>
+                    <Col span={10}>2</Col>
+                    <Col span={2}>3</Col>
+                    <Col span={10}>4</Col>
+                </Row>
+            </Content>
+        )
+    }
+}

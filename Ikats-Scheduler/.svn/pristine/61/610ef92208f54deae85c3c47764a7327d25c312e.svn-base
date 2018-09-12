@@ -1,0 +1,32 @@
+package com.ikats.scheduler.controller;
+
+
+import com.ikats.scheduler.util.GuanYiPostUtil;
+import java.io.IOException;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/12/15 10:03.
+ * @Description : Indulge in study , wasting away
+ */
+public class GYTest
+{
+    public static void main(String[] args) throws IOException
+    {
+//        String json = "{\n    \"method\": \"gy.erp.trade.deliverys.get\",\n    \"sessionkey\": \"50b24306aacf479a9a5651f0fc7cabc3\",\n    \"appkey\": \"112194\",\n    \"page_no\": \"1\",\n    \"page_size\": \"10\"\n}";
+//        JSONObject object = (JSONObject) JSONObject.parse(json);
+//        System.out.println(object);
+
+//        JSONObject object = new JSONObject();
+//        JSONObject express = new JSONObject();
+//        express.put("userName","VC@163.com");
+//        express.put("password","123456");
+//        object.put("express",express);
+//        String aa = object.toJSONString();
+//        System.out.println(aa);
+
+        String aa = "{\"express\":{\"password\":\"123456\",\"userName\":\"VC@163.com\"}}";
+        String result = GuanYiPostUtil.sendPost("http://sit.cms.chigoose.com/User/orgLogin.action",aa);
+        System.out.print(result);
+    }
+}

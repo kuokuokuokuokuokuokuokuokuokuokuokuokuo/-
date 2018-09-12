@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.ikats</groupId>
+        <artifactId>Ikats-Scheduler</artifactId>
+        <version>1.1.0</version>
+    </parent>
+
+    <modules>
+        <module>Package-Job-Service</module>
+    </modules>
+
+    <artifactId>Scheduler-Package</artifactId>
+    <name>${project.artifactId}</name>
+    <description>The all in one project package of chigoose</description>
+
+    <packaging>pom</packaging>
+
+    <properties>
+        <skip_maven_deploy>true</skip_maven_deploy>
+    </properties>
+</project>

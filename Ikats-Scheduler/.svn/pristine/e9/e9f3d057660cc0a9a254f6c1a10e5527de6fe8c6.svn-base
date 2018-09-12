@@ -1,0 +1,46 @@
+package com.ikats.scheduler.controller;
+
+import com.ikats.scheduler.util.GetClassFromJar;
+import com.ikats.scheduler.util.JedisUtil;
+import org.quartz.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.quartz.SchedulerFactoryBean;
+
+import java.net.URL;
+import java.net.URLClassLoader;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/11/9 10:01.
+ * @Description : Indulge in study , wasting away
+ */
+public class JarTest
+{
+    public static void main(String[] arg) throws Exception
+    {
+        String filePath = "file://E:/jar/Scheduler-Job-1.1.0.jar";
+        String packageName = "com.ikats.scheduler.job.Q2";
+
+        Class job  = GetClassFromJar.loadJar(filePath,packageName);
+
+        Long index = JedisUtil.getIndex();
+        SchedulerFactoryBean schedulerFactoryBean = new SchedulerFactoryBean();
+        Scheduler scheduler = schedulerFactoryBean.getScheduler();
+        // 任务名，任务组，任务执行类
+        JobDetail jobDetail= JobBuilder.newJob(job)
+                .withIdentity("LJobName" + index,"JGroup" + index)
+                .withDescription("FUCK-Zz").storeDurably(true).build();
+        // 触发器
+        TriggerBuilder<Trigger> triggerBuilder = TriggerBuilder.newTrigger();
+        // 触发器名,触发器组
+        triggerBuilder.withIdentity("LTriggerName" + index,"TGroup" + index);
+        //是否立即开始
+        triggerBuilder.startNow();
+        // 触发器时间设定
+        triggerBuilder.withSchedule(CronScheduleBuilder.cronSchedule("0/10 * * * * ?"));
+        // 创建Trigger对象
+        CronTrigger trigger = (CronTrigger) triggerBuilder.build();
+        // 调度容器设置JobDetail和Trigger
+        scheduler.scheduleJob(jobDetail, trigger);
+    }
+}

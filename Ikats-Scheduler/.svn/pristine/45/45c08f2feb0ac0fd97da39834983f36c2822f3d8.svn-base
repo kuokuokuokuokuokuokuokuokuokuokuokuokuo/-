@@ -1,0 +1,24 @@
+package com.ikats.scheduler.job;
+
+import org.quartz.Job;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import java.io.Serializable;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/10/26 15:14.
+ * @Description : Indulge in study , wasting away
+ */
+public class QTemp implements Serializable,Job
+{
+    private static final long serialVersionUID = 6890216263057956690L;
+    public void execute(JobExecutionContext arg0) throws JobExecutionException {
+        System.out.println("------------------------------------------------");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd hh:mm:ss");
+        System.out.println("QTemp          " + sdf.format(new Date()));
+        System.out.println("------------------------------------------------");
+    }
+}

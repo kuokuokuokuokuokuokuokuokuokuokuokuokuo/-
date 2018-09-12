@@ -1,0 +1,71 @@
+package com.ikats.scheduler.test;
+
+import java.io.IOException;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2018/4/19 14:47.
+ * @Description : Indulge in study , wasting away
+ */
+public class MarsT1
+{
+    public static void main(String[] args) throws IOException
+    {
+        String xml = "<STATUS>\n" +
+                "    <HDR>\n" +
+                "        <HDR_MESSAGE_TYPE>STATUS</HDR_MESSAGE_TYPE>\n" +
+                "        <HDR_IDOC_NUMBER>0000000329765176</HDR_IDOC_NUMBER>\n" +
+                "        <HDR_ACKN_DATE>20090715</HDR_ACKN_DATE>\n" +
+                "        <HDR_ACKN_TIME>093627</HDR_ACKN_TIME>\n" +
+                "        <HDR_STATUS>41</HDR_STATUS>\n" +
+                "        <HDR_REASON_CODE>VA</HDR_REASON_CODE>\n" +
+                "        <HDR_MESSAGE>처리완료</HDR_MESSAGE>\n" +
+                "    </HDR>\n" +
+                "</STATUS>";
+
+        String xml2 = "<WHSCON>\n" +
+                    "<HDR>\n" +
+                    "<HDR_MESSAGE_TYPE>WHSCON</HDR_MESSAGE_TYPE>\n" +
+                    "<HDR_DELIVERY_NO>7980377556</HDR_DELIVERY_NO>\n" +
+                    "<HDR_PGI_DATE>20180427</HDR_PGI_DATE>\n" +
+                    "<HDR_PGI_TIME>094617</HDR_PGI_TIME>\n" +
+                    "<HDR_TRANSMIT_DATE>20180427</HDR_TRANSMIT_DATE>\n" +
+                    "<HDR_TRANSMIT_TIME>094617</HDR_TRANSMIT_TIME>\n" +
+                    "</HDR>\n" +
+                    "<DET>\n" +
+                    "<DET_DEL_LINE_NO>000010</DET_DEL_LINE_NO>\n" +
+                    "<DET_MATERIAL>ET14458</DET_MATERIAL>\n" +
+                    "<DET_PLANT>KR02</DET_PLANT>\n" +
+                    "<DET_SLOC>0001</DET_SLOC>\n" +
+                    "<DET_QUANTITY>1.000</DET_QUANTITY>\n" +
+                    "<DET_UOM>CS</DET_UOM>\n" +
+                    "<DET_BATCH_CODE>999A9REL99</DET_BATCH_CODE>\n" +
+                    "<DET_STOCK_STATUS/>\n" +
+                    "</DET>\n" +
+                    "<DET>\n" +
+                    "<DET_DEL_LINE_NO>000020</DET_DEL_LINE_NO>\n" +
+                    "<DET_MATERIAL>ET14434</DET_MATERIAL>\n" +
+                    "<DET_PLANT>KR02</DET_PLANT>\n" +
+                    "<DET_SLOC>0001</DET_SLOC>\n" +
+                    "<DET_QUANTITY>1.000</DET_QUANTITY>\n" +
+                    "<DET_UOM>CS</DET_UOM>\n" +
+                    "<DET_BATCH_CODE>999A9REL99</DET_BATCH_CODE>\n" +
+                    "<DET_STOCK_STATUS/>\n" +
+                    "</DET>\n" +
+                    "<DET>\n" +
+                    "<DET_DEL_LINE_NO>000030</DET_DEL_LINE_NO>\n" +
+                    "<DET_MATERIAL>10063763</DET_MATERIAL>\n" +
+                    "<DET_PLANT>KR02</DET_PLANT>\n" +
+                    "<DET_SLOC>0001</DET_SLOC>\n" +
+                    "<DET_QUANTITY>1.000</DET_QUANTITY>\n" +
+                    "<DET_UOM>CS</DET_UOM>\n" +
+                    "<DET_BATCH_CODE>999A9REL99</DET_BATCH_CODE>\n" +
+                    "<DET_STOCK_STATUS/>\n" +
+                    "</DET>\n" +
+                    "</WHSCON>";
+        //
+       String result = PostUtil.sendPost("http://b2btest.sinotrans.com:7377/httptoas2/mars",xml);
+       System.out.println("Call Back : " + result);
+        
+    }
+}

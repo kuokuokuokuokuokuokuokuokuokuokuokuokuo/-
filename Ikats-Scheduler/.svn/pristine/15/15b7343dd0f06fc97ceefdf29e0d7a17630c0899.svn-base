@@ -1,0 +1,188 @@
+package com.ikats.scheduler.job;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONPath;
+import com.ikats.scheduler.entity.bean.PurchaseOrderBean;
+import com.ikats.scheduler.entity.enumerate.SendStatus;
+import com.ikats.scheduler.logic.PurchaseOrderLogic;
+import com.ikats.scheduler.util.*;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.quartz.QuartzJobBean;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 定时任务获取管易的采购入库单查询
+ *
+ * @Author : liu kuo
+ * @Date : 2017/10/26 15:14.
+ * @Description : Indulge in study , wasting away
+ */
+
+public class GuanyYiGetPurchaseOrdersJob extends QuartzJobBean {
+
+    @Autowired
+    private PurchaseOrderLogic orderLogic;
+
+    //private static String FACE_NAME = "gy.erp.purchase.get";
+
+    private static String FACE_NAME = "gy.erp.purchase.arrive.get";
+
+    @Override
+    protected void executeInternal(JobExecutionContext jobExecutionContext) throws JobExecutionException {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SystemOutMessage.start("GuanYi_GetPurchaseOrders", sdf.format(new Date()));
+        if (null == orderLogic) {
+            SystemOutMessage.body("false 系统异常");
+            return;
+        }
+        //解析回执数据
+        List<PurchaseOrderBean> orderBeans = new ArrayList<PurchaseOrderBean>();
+        try {
+            //获取到 appkey 对应的客户关系
+            String clientXml = "<eFreightService>\n" +
+                    "<ServiceURL>Client</ServiceURL>\n" +
+                    "<ServiceAction>queryClient</ServiceAction>\n" +
+                    "<ServiceData>\n" +
+                    "<ChannelId/>\n" +
+                    "<AdminUserName>" + GuanYiPostUtil.APPKEY + "</AdminUserName>\n" +
+                    "<StockId/>\n" +
+                    "<ClientId/>\n" +
+                    "</ServiceData>\n" +
+                    "</eFreightService>\n";
+
+            String clients = OmsPostUtil.PostXml(clientXml);
+
+            JSONObject jsonClients = (JSONObject) JSONPath.read(clients, "$");
+            if (null == jsonClients)
+            {
+                SystemOutMessage.body("OMS --  client 查询失败 -- 终止取消订单查询");
+                return;
+            }
+            String clientSuccess = jsonClients.getString("success");
+            if (null == clientSuccess || !clientSuccess.equals("true"))
+            {
+                SystemOutMessage.body("OMS --  client 查询失败 -- 终止采购入入库单查询");
+                return;
+            }
+            JSONArray client = jsonClients.getJSONArray("client");
+            for (int i = 0; i < client.size(); i++)
+            {
+                for (int page = 1; page < 10000; page++)
+                {
+                    JSONObject jClient = (JSONObject) client.get(i);
+                    //客户
+                    String clientId = jClient.getString("clientid");
+                    //仓库
+                    String stockId = jClient.getString("stockid");
+                    //渠道
+                    String channelId = jClient.getString("channelid");
+                    Calendar now = Calendar.getInstance();
+                    JSONObject sendJson = new JSONObject();
+                    sendJson.put("appkey", GuanYiPostUtil.APPKEY);
+                    sendJson.put("sessionkey", GuanYiPostUtil.SESSIONKEY);
+                    sendJson.put("method", FACE_NAME);
+                    sendJson.put("warehouse_code", stockId);
+                    sendJson.put("end_approve", sdf.format(now.getTimeInMillis()));
+                    sendJson.put("start_approve", sdf.format(JobDateUtil.backToThePastMinute(now, 50).getTimeInMillis()));
+                    //已审核的
+                    sendJson.put("status", 0);
+                    sendJson.put("page_no", page);
+                    sendJson.put("page_size", "100");
+                    String sendString = sendJson.toJSONString();
+                    String sign = GuanYiPostUtil.sign(sendString, GuanYiPostUtil.SECRET);
+                    sendJson.put("sign", sign);
+                    String sendParam = sendJson.toJSONString();
+                    //管易回执
+                    String result = GuanYiPostUtil.sendPost(GuanYiPostUtil.URL, sendParam);
+                    JSONObject jsonGy = (JSONObject) JSONPath.read(result, "$");
+                    String success = jsonGy.getString("success");
+
+                    if (success.equals("false"))
+                    {
+                        break;
+                    }
+                    //采购单 Array
+                    JSONArray orders = (JSONArray) jsonGy.get("purchaseArrives");
+                    if (null == orders || orders.size() == 0)
+                    {
+                        break;
+                    }
+
+                    for (int j = 0; j < orders.size(); j++)
+                    {
+                        PurchaseOrderBean orderBean = new PurchaseOrderBean();
+                        //某个订单
+                        JSONObject order = (JSONObject) orders.get(j);
+                        orderBean.setAppKey(GuanYiPostUtil.APPKEY);
+                        orderBean.setIdRecord(1L);
+                        orderBean.setOrderNo(order.getString("code"));
+                        orderBean.setState(SendStatus.INIT.getValue());
+                        orderBean.setTimes(0);
+                        orderBean.setCreateTime(new Date());
+                        //订单的商品 集
+                        JSONArray details = (JSONArray) order.get("details");
+                        String omsXml = "<Service>\n" +
+                                "\t<ServiceURL>HaitaoInboundPlan</ServiceURL>\n" +
+                                "\t<ServiceAction>neteasePurchase</ServiceAction>\n" +
+                                "\t<UserName>" + clientId + "</UserName>\n" +
+                                "\t<Platform></Platform>\n" +
+                                "\t<ChannelName></ChannelName>\n" +
+                                "\t<ServiceData>\n" +
+                                "\t\t<contract_no/>\n" +
+                                "\t\t<expect_arrival_time>" + sdf.format(new Date()) + "</expect_arrival_time>\n" +
+                                "\t\t<order_items>\n";
+
+                        for (int x = 0; x < details.size(); x++)
+                        {
+                            JSONObject detail = (JSONObject) details.get(x);
+
+                            omsXml += "\t\t  <e>\n" +
+                                    "\t\t  \t<OrderItemId></OrderItemId>\n" +
+                                    "\t\t\t<barcode/>\n" +
+                                    "\t\t\t<goods_en_name>" + detail.getString("sku_name") + "</goods_en_name>\n" +
+                                    "\t\t\t<goods_name>" + detail.getString("sku_name") + "</goods_name>\n" +
+                                    "\t\t\t<product_no>" + detail.getString("item_code") + "</product_no>\n" +
+                                    "\t\t\t<qty>" + detail.getString("qty") + "</qty>\n" +
+                                    "\t\t\t<skuBarcode/>\n" +
+                                    "\t\t\t<sku_id>" + detail.getString("item_code") + "_" + detail.getString("sku_code") + "</sku_id>\n" +
+                                    "\t\t\t<sku_name>" + detail.getString("sku_name") + "</sku_name>\n" +
+                                    "\t\t  </e>\n";
+                        }
+
+                        omsXml += "\t\t</order_items>\n" +
+                                "\t\t<purchase_id>" + order.getString("code") + "</purchase_id>\n" +
+                                "\t\t<remark/>\n" +
+                                "\t\t<stock_id>" + stockId + "</stock_id>\n" +
+                                "\t\t<supplier_id>" + order.getString("supplier_code") + "</supplier_id>\n" +
+                                "\t\t<NoEnvelope>Y</NoEnvelope>\n" +
+                                "\t\t<prevInOrderCodeTallied/>\n" +
+                                "\t</ServiceData>\n" +
+                                "</Service>\n";
+
+                        orderBean.setOmsRequest(omsXml);
+                        orderBeans.add(orderBean);
+                    }
+                    if (orders.size() < 100) break;
+                }
+            }
+
+            this.orderLogic.insertList(orderBeans);
+            if (!orderLogic.getSuccess())
+            {
+                SystemOutMessage.body(this.orderLogic.getSuccess() + this.orderLogic.getMessage());
+                return;
+            }
+        }catch (Exception e)
+        {
+            SystemOutMessage.body(" false  " + e.getMessage());
+        }
+        SystemOutMessage.end("GuanYi_GetPurchaseOrders", sdf.format(new Date()));
+    }
+}

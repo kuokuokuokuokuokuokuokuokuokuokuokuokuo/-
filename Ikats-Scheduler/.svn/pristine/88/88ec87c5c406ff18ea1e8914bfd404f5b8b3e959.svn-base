@@ -1,0 +1,53 @@
+package com.ikats.scheduler.controller;
+
+import java.io.File;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/11/9 11:14.
+ * @Description : Indulge in study , wasting away
+ */
+public class JarSTest
+{
+    protected static Method addURL = null ;
+    static{
+        try
+        {
+            addURL = URLClassLoader.class.getDeclaredMethod("addURL", new Class[] { URL.class }) ;
+            addURL.setAccessible(true);
+        }catch(Exception e)
+        {
+            throw new RuntimeException("初始化失败");
+        }
+    }
+
+    /**
+     * 动态加载Jar包到内存中
+     * */
+    public static Class loadJar(String jarFile, String className) {
+        try {
+            File file = new File( jarFile );
+            if (!file.exists())
+            {
+                throw new RuntimeException(jarFile + "不存在");
+            }
+            addURL.invoke(ClassLoader.getSystemClassLoader(), new Object[] { file.toURI().toURL() });
+            return Class.forName( className ,false , ClassLoader.getSystemClassLoader() );
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static void main(String[] args) throws Exception
+    {
+//        Object loadJar = loadJar("E:/jar/commons-io-2.4.jar", "org.apache.commons.io.Charsets") ;
+        Class loadJar = loadJar("E:/jar/Package-Job-Service-1.1.0.jar", "com.ikats.scheduler.job.Q");
+//        Field field = loadJar.getClass().getField("UTF_8");
+        System.out.println(loadJar);
+    }
+}

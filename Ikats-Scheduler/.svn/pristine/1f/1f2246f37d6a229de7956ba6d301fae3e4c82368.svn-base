@@ -1,0 +1,56 @@
+package com.ikats.scheduler.service;
+
+import com.ikats.scheduler.entity.dto.DmsSettlementRecordDto;
+import com.ikats.scheduler.entity.query.DmsSettlementRecordQuery;
+import com.ikats.scheduler.logic.DmsSettlementRecordLogic;
+import com.ikats.wharf.config.annotation.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/11/17 14:19.
+ * @Description : Indulge in study , wasting away
+ */
+@Service
+public class DmsSettlementRecordService implements IDmsSettlementRecordService
+{
+    @Autowired
+    private DmsSettlementRecordLogic logic;
+
+    @Override
+    public DmsSettlementRecordDto newRecord(DmsSettlementRecordQuery query)
+    {
+        DmsSettlementRecordDto dto = new DmsSettlementRecordDto();
+        try
+        {
+            logic.addRecord(query.getDataRow());
+            dto.setDataRow(query.getDataRow());
+            dto.setSuccess(logic.getSuccess());
+            dto.setMessage(logic.getMessage());
+        }catch (Exception e)
+        {
+            dto.setSuccess(false);
+            dto.setMessage("系统异常!");
+            return dto;
+        }
+        return dto;
+    }
+
+    @Override
+    public DmsSettlementRecordDto record(DmsSettlementRecordQuery query)
+    {
+        DmsSettlementRecordDto dto = new DmsSettlementRecordDto();
+        try
+        {
+            dto.setDataRow(logic.record(query.getId()));
+            dto.setSuccess(logic.getSuccess());
+            dto.setMessage(logic.getMessage());
+        }catch (Exception e)
+        {
+            dto.setSuccess(false);
+            dto.setMessage("系统异常!");
+            return dto;
+        }
+        return dto;
+    }
+}

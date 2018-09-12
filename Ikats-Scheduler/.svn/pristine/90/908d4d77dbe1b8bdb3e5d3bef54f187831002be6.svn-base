@@ -1,0 +1,172 @@
+package com.ikats.scheduler.logic;
+
+import com.ikats.scheduler.entity.bean.JSTPurchaseOrderBean;
+import com.ikats.scheduler.entity.enumerate.GYStatus;
+import com.ikats.scheduler.repository.IJSTPurchaseOrderRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @Author: Zhao Jianzhen
+ * @Date: Created in 14:12 2018/1/3
+ * @Description:
+ */
+@Component
+@Transactional
+public class JSTPurchaseOrderLogic extends AbstractLogic
+{
+
+    @Autowired
+    private IJSTPurchaseOrderRepository repository;
+
+    /**
+     * 添加单条记录
+     */
+    public void insert(JSTPurchaseOrderBean bean) {
+        int count = repository.insert(bean);
+        if (count <= 0) {
+            this.setSuccess(false);
+            this.setMessage("没有新增");
+
+            return;
+        }
+        this.setSuccess(true);
+    }
+
+    /**
+     * 添加一批记录
+     */
+    public void insertList(List<JSTPurchaseOrderBean> list)
+    {
+        //判断订单是否存在
+        for (Iterator iter = list.iterator(); iter.hasNext(); )
+        {
+            JSTPurchaseOrderBean bean = (JSTPurchaseOrderBean) iter.next();
+            List<JSTPurchaseOrderBean> holdBean = this.repository.selectByNo(bean.getOrderNo());
+            //订单已存在
+            if(null != holdBean && holdBean.size() != 0)
+            {
+                iter.remove();
+//                if(holdBean.get(0).getState().equals(GYStatus.INIT.getValue()) && bean.getOmsRequest().equals(holdBean.get(0).getOmsRequest()))
+//                {
+//                    //发送报文已修改,且历史订单尚未处理的,进行更新
+//                    this.repository.updateByOrderNo(bean);
+//                }
+                if(!holdBean.get(0).getState().equals(GYStatus.SEND_OK.getValue()) && !bean.getOmsRequest().equals(holdBean.get(0).getOmsRequest()))
+                {
+                    //发送报文已修改,且历史订单尚未处理的,进行更新
+                    this.repository.updateByOrderNo(bean);
+                }
+            }
+        }
+        if(list.size() == 0)
+        {
+            this.setSuccess(false);
+            this.setMessage("-----JST订单-----未有新的数据录入");
+            return;
+        }
+        int count = repository.insertList(list);
+        if (count <= 0)
+        {
+            this.setSuccess(false);
+            this.setMessage("没有新增");
+
+            return;
+        }
+        this.setSuccess(true);
+    }
+
+    /**
+     * 更新记录
+     */
+    public void update(JSTPurchaseOrderBean bean) {
+        int count = repository.update(bean);
+        if (count <= 0) {
+            this.setSuccess(false);
+            this.setMessage("修改失败");
+
+            return;
+        }
+        this.setSuccess(true);
+    }
+
+    /**
+     * 删除记录
+     */
+    public void delete(Long id) {
+        int count = repository.delete(id);
+        if (count <= 0) {
+            this.setSuccess(false);
+            this.setMessage("删除失败");
+            return;
+        }
+        this.setSuccess(true);
+    }
+
+    /**
+     * 得到一条记录
+     */
+    public JSTPurchaseOrderBean selectByKey(Long id) {
+        JSTPurchaseOrderBean bean = repository.selectByKey(id);
+        if (bean == null) {
+            this.setSuccess(false);
+            this.setMessage("没有找到");
+            return null;
+        }
+        return bean;
+    }
+
+    /**
+     * 所有记录计数
+     */
+    public Long selectCount(Map<String, String> express) {
+        Long count = repository.selectCount(express);
+        this.setSuccess(true);
+        return count;
+    }
+
+    /**
+     * 得到查询记录
+     */
+    public List<JSTPurchaseOrderBean> selectByQuery(Map<String, String> express) {
+        List<JSTPurchaseOrderBean> beanList = repository.selectByQuery(express);
+        if (beanList.size() == 0) {
+            this.setSuccess(false);
+            this.setMessage("没有找到");
+            return null;
+        }
+        this.setSuccess(true);
+        return beanList;
+    }
+
+    /**
+     * 得到翻页查询记录
+     */
+    public List<JSTPurchaseOrderBean> pageByQuery(int pageNum, int pageSize, Map<String, String> express) {
+        List<JSTPurchaseOrderBean> beanList = repository.pageByQuery(pageNum, pageSize, express);
+        if (beanList.size() == 0) {
+            this.setSuccess(false);
+            this.setMessage("没有找到");
+            return null;
+        }
+        this.setSuccess(true);
+        return beanList;
+    }
+
+    public List<JSTPurchaseOrderBean> getOrderSendJob()
+    {
+        List<JSTPurchaseOrderBean> beanList = this.repository.getOrderSendJob();
+        if (beanList.size() == 0) {
+            this.setSuccess(false);
+            this.setMessage("没有要发送的出库单任务!");
+            return null;
+        }
+        this.setSuccess(true);
+        return beanList;
+    }
+}

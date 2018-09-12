@@ -1,0 +1,17 @@
+import { observable, action } from "mobx";
+import {notification} from 'antd';
+import ServiceTestService from "../Services/ServiceTestService";
+
+export default class ServiceTestStore
+{
+    //@observable loading;
+
+    constructor()
+    {
+    }
+
+    @action
+    async login(values)
+    {
+    }
+}

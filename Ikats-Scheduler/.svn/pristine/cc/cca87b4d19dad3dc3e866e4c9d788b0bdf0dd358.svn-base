@@ -1,0 +1,30 @@
+package com.ikats.scheduler.job;
+
+import org.apache.log4j.Logger;
+import org.quartz.Job;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import java.io.Serializable;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/10/26 15:14.
+ * @Description : Indulge in study , wasting away
+ */
+public class Q2 implements Serializable,Job
+{
+    private static final long serialVersionUID = 6890216263057956690L;
+
+    protected static Logger logger = Logger.getLogger(Q2.class);
+
+    public void execute(JobExecutionContext arg0) throws JobExecutionException {
+        System.out.println("+++++++++++++++++++++++++++++++++++++++++++++");
+        logger.info("Log+++++++++++++++++++++++++++++++++++++++++++++");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd hh:mm:ss");
+        System.out.println("Q2             " + sdf.format(new Date()));
+        System.out.println("++++++++++++++++++++++++++++++++++++++++++++");
+        logger.info("Log+++++++++++++++++++++++++++++++++++++++++++++");
+    }
+}

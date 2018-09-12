@@ -1,0 +1,40 @@
+package com.ikats.scheduler.test;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONPath;
+
+import java.io.IOException;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2018/1/3 16:31.
+ * @Description : Indulge in study , wasting away
+ */
+public class Test
+{
+    public static void main(String[] args) throws IOException
+    {
+        String sPartnerId="ywv5jGT8ge6Pvlq3FZSPol345asd";
+        String sPartnerKey="ywv5jGT8ge6Pvlq3FZSPol2323";
+        String sToken="181ee8952a88f5a57db52587472c3798";
+        String sHostUrl="http://a1q40taq0j.api.taobao.com/router/qmtest";
+        String sMethod="jst.orders.query";
+        String sTaobaoAPPKEYString="24743828";
+        String sTaobaoAPPSECRET="b64bb5d33dcc0b09c730a4a39905f0cd";
+        Query api=new Query(sTaobaoAPPKEYString,sTaobaoAPPSECRET,sPartnerId,sPartnerKey,sToken,sMethod,sHostUrl);
+        api.AddArg("modified_begin","2017-11-1");
+        api.AddArg("modified_end","2017-11-3");
+//        api.AddArg("modified_begin","2018-1-1");
+//        api.AddArg("modified_end","2018-1-3");
+        api.AddArg("status", "Delivering");
+//        api.AddArg("shop_id", "14585");
+        String sData=  api.QueryData();
+        JSONObject jsonJST = (JSONObject) JSONPath.read(sData, "$");
+        JSONObject response = jsonJST.getJSONObject("response");
+        boolean success = response.getBoolean("issuccess");
+        JSONArray orders = response.getJSONArray("orders");
+        System.out.println(success + "_" + orders.size());
+
+    }
+}

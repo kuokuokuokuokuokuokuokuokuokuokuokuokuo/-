@@ -1,0 +1,435 @@
+package com.ikats.scheduler.controller;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONPath;
+import com.ikats.scheduler.util.GuanYiPostUtil;
+import com.ikats.scheduler.util.JobDataTransferUtil;
+import com.ikats.scheduler.util.OmsPostUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/11/6 16:27.
+ * @Description : Indulge in study , wasting away
+ */
+@Controller
+@RequestMapping("GYEntrance")
+public class GuanYiEntranceController {
+    @ResponseBody
+    @RequestMapping(value = "Debug",produces="text/html;charset=UTF-8;",method = {RequestMethod.POST})
+    public String Debug(String jString, int way) throws IOException {
+        if (way == 1)
+        {
+            JSONObject object = (JSONObject) JSONPath.read(jString, "$");
+            String sendString = object.toJSONString();
+            String sign = GuanYiPostUtil.sign(sendString, GuanYiPostUtil.SECRET);
+            object.put("sign", sign);
+            String sendParam = object.toJSONString();
+            //管易回执
+            String result = GuanYiPostUtil.sendPost(GuanYiPostUtil.URL, sendParam);
+            return result;
+        } else if (way == 2)
+        {
+            String omsResponse = OmsPostUtil.PostXml(jString);
+            return omsResponse;
+        } else if (way == 3)
+        {
+            JSONObject object = (JSONObject) JSONPath.read(jString, "$");
+            String method = object.getString("method");
+            if (StringUtils.isBlank(method)) {
+                return "";
+            }
+            //订单 -- 包括出库单 & 取消的订单
+            if (method.equals("gy.erp.trade.deliverys.get"))
+            {
+                if(!object.containsKey("client_id")
+                        || StringUtils.isBlank(object.getString("client_id")))
+                {
+                    return "缺少 client_id";
+                }
+                String clientId = object.getString("client_id");
+                object.remove("client_id");
+                String sendString = object.toJSONString();
+                String sign = GuanYiPostUtil.sign(sendString, GuanYiPostUtil.SECRET);
+                object.put("sign", sign);
+                String sendParam = object.toJSONString();
+                //管易回执
+                String result = GuanYiPostUtil.sendPost(GuanYiPostUtil.URL, sendParam);
+                JSONObject jsonGy = (JSONObject) JSONPath.read(result, "$");
+                String success = jsonGy.getString("success");
+                String cancel = jsonGy.getString("cancel");
+
+                if (success.equals("false"))
+                {
+                    return result;
+                }
+                JSONArray deliverys = (JSONArray) jsonGy.get("deliverys");
+                //取消订单
+                if (StringUtils.isNotBlank(cancel) && cancel.equals("1"))
+                {
+                    if (null ==deliverys || deliverys.size() == 0)
+                    {
+                        return result;
+                    }
+                    for (int j = 0; j < deliverys.size(); j++)
+                    {
+                        JSONObject order = (JSONObject) deliverys.get(j);
+                        String omsXml =
+                                "<Service>\n" +
+                                        "<ServiceURL>OMSOrder</ServiceURL>\n" +
+                                        "<ServiceAction>CancelOrder</ServiceAction>\n" +
+                                        "<ServiceData>\n" +
+                                        "<OrderNo>" + order.getString("code") + "</OrderNo>\n" +
+                                        "<UserName>" + clientId + "</UserName>\n" +
+                                        "<Operater>" + clientId + "</Operater>\n" +
+                                        "</ServiceData>\n" +
+                                        "</Service>\n";
+                        OmsPostUtil.PostXml(omsXml);
+                    }
+                }else
+                {
+                    for (int j = 0; j < deliverys.size(); j++)
+                    {
+                        JSONObject order = (JSONObject) deliverys.get(j);
+                        //订单的商品 集
+                        JSONArray details = (JSONArray) order.get("details");
+                        String omsXml =
+                                "<Service>\n" +
+                                        "  <ServiceURL>OMSOrder</ServiceURL>\n" +
+                                        "  <ServiceAction>DMOrder</ServiceAction>\n" +
+                                        "  <UserName>" + clientId + "</UserName>\n" +
+                                        "  <ChannelName>管易</ChannelName>\n" +
+                                        "  <ServiceData>\n" +
+                                        "    <Order>\n" +
+                                        "      <SupplyVendor>" + clientId + "</SupplyVendor>\n" +
+                                        "      <SupplyChannel>" + clientId + "</SupplyChannel>\n" +
+                                        "      <ClearPort></ClearPort>\n" +
+                                        "      <Port></Port>\n" +
+                                        "      <eStoreNo>" + clientId + "</eStoreNo>\n" +
+                                        "      <OrderNo>" + order.getString("code") + "</OrderNo>\n" +
+                                        "      <PaymentNo/>\n" +
+                                        "      <PayChannel>1</PayChannel>\n" +
+                                        "      <ParcelCode>" + order.getString("express_no") + "</ParcelCode>\n" +
+                                        "      <Mawbcode>1</Mawbcode>\n" +
+                                        "      <FreightCode/>\n" +
+                                        "      <OrderTotalAmount>" + order.get("amount") + "</OrderTotalAmount>\n" +
+                                        "      <OrderGoodsAmount>" + order.get("amount") + "</OrderGoodsAmount>\n" +
+                                        "      <OrderTotalCount>" + JobDataTransferUtil.stringToInt(order.getString("qty")) + "</OrderTotalCount>\n" +
+                                        "      <FreightCharge>" + order.get("post_fee") + "</FreightCharge>\n" +
+                                        "      <TarrifCharge>0</TarrifCharge>\n" +
+                                        "      <ValuationFee>0</ValuationFee>\n" +
+                                        "      <Discount>" + order.get("discount_fee") + "</Discount>\n" +
+                                        "      <OrderTime>" + order.get("create_date") + "</OrderTime>\n" +
+                                        "      <Status>ORDER</Status>\n" +
+                                        "      <RoughWeight>0</RoughWeight>\n" +
+                                        "      <NetWeight>0</NetWeight>\n" +
+                                        "      <StockId>" + order.get("warehouse_code") + "</StockId>\n" +
+                                        "      <StockName>" + order.getString("warehouse_name") + "</StockName>\n" +
+                                        "      <IdentityImageFront></IdentityImageFront>\n" +
+                                        "      <IdentityImageBack></IdentityImageBack>\n" +
+                                        "      <PurchaseChannel/>\n" +
+                                        "      <PurchaseLogistics/>\n" +
+                                        "      <PurchaseLogisticsCode></PurchaseLogisticsCode>\n" +
+                                        "      <TransferFirstName/>\n" +
+                                        "      <TransferLastName/>\n" +
+                                        "      <ChannelId>" + order.get("shop_code") + "</ChannelId>\n" +
+                                        "      <ShopName>" + order.getString("shop_name") + "</ShopName>\n" +
+                                        "      <ChannelName>1</ChannelName>\n" +
+                                        "      <Forwarder>" + order.get("express_code") + "</Forwarder>\n" +
+                                        "      <SKUDesc></SKUDesc>\n" +
+                                        "\t  <Note></Note>\n" +
+                                        "\t  <Remark></Remark>\n" +
+                                        "      <NeutralPackage/>\n" +
+                                        "      <Buyer>\n" +
+                                        "        <BuyerID/>\n" +
+                                        "        <BuyerName></BuyerName>\n" +
+                                        "        <BuyerEmail/>\n" +
+                                        "        <BuyerPhone/>\n" +
+                                        "        <BuyerAddress/>\n" +
+                                        "        <BuyerIdentityCardType>01</BuyerIdentityCardType>\n" +
+                                        "        <BuyerIdentityCardNo></BuyerIdentityCardNo>\n" +
+                                        "      </Buyer>\n" +
+                                        "      <Consignee>\n" +
+                                        "        <ConsigneeName>" + order.get("receiver_name") + "</ConsigneeName>\n" +
+                                        "        <ConsigneeEmail/>\n" +
+                                        "        <ConsigneePhone>" + order.get("receiver_mobile") + "</ConsigneePhone>\n" +
+                                        "        <ConsigneePost/>\n" +
+                                        "        <ConsigneeAddress>" + order.get("receiver_address") + "</ConsigneeAddress>\n" +
+                                        "        <ConsigneeIdentityCardType>01</ConsigneeIdentityCardType>\n" +
+                                        "        <ConsigneeIdentityCardNo></ConsigneeIdentityCardNo>\n" +
+                                        "        <RecipientProvincesCode></RecipientProvincesCode>\n" +
+                                        "        <tcustProvince>1</tcustProvince>\n" +
+                                        "        <tcustCity>1</tcustCity>\n" +
+                                        "        <tcustCounty>1</tcustCounty>\n" +
+                                        "      </Consignee>\n" +
+                                        "      <OrderDetailList>\n";
+                        for (int x = 0; x < details.size(); x++) {
+                            JSONObject sku = (JSONObject) details.get(x);
+                            omsXml += "        <OrderDetailItem>\n" +
+                                    "          <SKUCode>" + sku.get("item_code") + "_" + sku.get("sku_code") + "</SKUCode>\n" +
+                                    "          <SKUName>" + sku.get("sku_name") + "</SKUName>\n" +
+                                    "          <SKUEnglishName/>\n" +
+                                    "          <SKUModel>" + sku.get("sku_name") + "</SKUModel>\n" +
+                                    "          <SKUPrice>" + sku.get("price") + "</SKUPrice>\n" +
+                                    "          <SKUCount>" + JobDataTransferUtil.stringToInt(sku.getString("qty")) + "</SKUCount>\n" +
+                                    "          <LabelCode></LabelCode>\n" +
+                                    "          <MailTaxNo></MailTaxNo>\n" +
+                                    "          <HsCode></HsCode>\n" +
+                                    "          <GoodsItemNo></GoodsItemNo>\n" +
+                                    "          <ProductionMarketingCountry></ProductionMarketingCountry>\n" +
+                                    "          <GoodsNetWeight>0</GoodsNetWeight>\n" +
+                                    "          <GoodsRoughWeight>0</GoodsRoughWeight>\n" +
+                                    "          <BargainCurrency>142</BargainCurrency>\n" +
+                                    "          <DeclareCount>" + JobDataTransferUtil.stringToInt(sku.getString("qty")) + "</DeclareCount>\n" +
+                                    "          <DeclareMeasureUnit></DeclareMeasureUnit>\n" +
+                                    "          <FirstUnit/>\n" +
+                                    "          <FirstCount/>\n" +
+                                    "          <SecondUnit/>\n" +
+                                    "          <SecondCount/>\n" +
+                                    "        </OrderDetailItem>\n";
+                        }
+
+                        omsXml += "      </OrderDetailList>\n" +
+                                "    </Order>\n" +
+                                "  </ServiceData>\n" +
+                                "</Service>\n";
+                        OmsPostUtil.PostXml(omsXml);
+                    }
+                }
+                return result;
+            } else if (method.equals("gy.erp.items.get"))//查询商品备案的 --
+            {
+                //GY
+                String sendString = object.toJSONString();
+                String sign = GuanYiPostUtil.sign(sendString, GuanYiPostUtil.SECRET);
+                object.put("sign", sign);
+                String sendParam = object.toJSONString();
+                //管易回执
+                String result = GuanYiPostUtil.sendPost(GuanYiPostUtil.URL, sendParam);
+                JSONObject jsonGy = (JSONObject) JSONPath.read(result, "$");
+                String success = jsonGy.getString("success");
+                if (success.equals("false"))
+                {
+                    return result;
+                }
+                //查询 oms - client , 获取到 appkey 对应的客户关系
+                String clientXml = "<eFreightService>\n" +
+                        "<ServiceURL>Client</ServiceURL>\n" +
+                        "<ServiceAction>queryClient</ServiceAction>\n" +
+                        "<ServiceData>\n" +
+                        "<ChannelId/>\n" +
+                        "<AdminUserName>" + GuanYiPostUtil.APPKEY + "</AdminUserName>\n" +
+                        "<StockId/>\n" +
+                        "<ClientId/>\n" +
+                        "</ServiceData>\n" +
+                        "</eFreightService>\n";
+
+                String clients = OmsPostUtil.PostXml(clientXml);
+
+                JSONObject jsonClients = (JSONObject) JSONPath.read(clients, "$");
+                if (null == jsonClients) {
+                    return "OMS --  client 查询失败 -- 终止取消订单查询";
+                }
+                String clientSuccess = jsonClients.getString("success");
+                if (null == clientSuccess || !clientSuccess.equals("true")) {
+                    return "OMS --  client 查询失败 -- 终止备案发送";
+                }
+                JSONArray client = jsonClients.getJSONArray("client");
+                for (int i = 0; i < client.size(); i++)
+                {
+                    JSONObject jClient = (JSONObject) client.get(i);
+                    //客户
+                    String clientId = jClient.getString("clientid");
+                    //仓库
+                    String stockId = jClient.getString("stockid");
+                    //渠道
+                    String channelId = jClient.getString("channelid");
+
+                    //
+                    JSONArray items = (JSONArray) jsonGy.get("items");
+                    if (items.size() == 0)
+                    {
+                        return result;
+                    }
+
+                    for (int j = 0; j < items.size(); j++)
+                    {
+                        JSONObject product = (JSONObject) items.get(j);
+                        String itemCode = product.getString("code");
+                        //是否为组合商品
+                        String combine = product.getString("combine");
+                        if (combine.equals("true")) {
+                            JSONArray combineItems = (JSONArray) product.get("combine_items");
+                            //组合商品
+                            String omsXml = "<Service>\n" +
+                                    "    <ServiceURL>GoodsRegister</ServiceURL>\n" +
+                                    "    <ServiceAction>saveGoodsRegister</ServiceAction>\n" +
+                                    "    <UserName>" + clientId + "</UserName>\n" +
+                                    "    <Platform></Platform>\n" +
+                                    "    <ChannelName></ChannelName>\n" +
+                                    "    <ServiceData>\n" +
+                                    "        <ClientID>" + clientId + "</ClientID>\n" +
+                                    "        <GoodsCode>" + product.getString("code") + "</GoodsCode>\n" +
+                                    "        <GoodsName>" + product.getString("name") + "</GoodsName>\n" +
+                                    "        <GoodsRoughWeight>" + product.getString("weight") + "</GoodsRoughWeight>\n" +
+                                    "        <GoodsPrice>" + product.getString("sales_price") + "</GoodsPrice>\n" +
+                                    "        <GoodsNetWeight>" + product.getString("weight") + "</GoodsNetWeight>\n" +
+                                    "        <Skus>\n";
+                            for (int x = 0; x < combineItems.size(); x++) {
+                                JSONObject combineItem = (JSONObject) combineItems.get(x);
+                                omsXml +=
+                                        "   <Sku>\n" +
+                                                "       <SKUCode>" + combineItem.getString("item_code") + "_" + combineItem.getString("item_sku_code") + "</SKUCode>\n" +
+                                                "       <SKUCount>" + JobDataTransferUtil.stringToInt(combineItem.getString("qty")) + "</SKUCount>\n" +
+                                                "       <MailTax>" + product.getString("tax_no") + "</MailTax>\n" +
+                                                "       <ProductMarketingCountry>142</ProductMarketingCountry>\n" +
+                                                "   </Sku>\n";
+                            }
+                            omsXml +=
+                                    "        </Skus>\n" +
+                                            "    </ServiceData>\n" +
+                                            "</Service>";
+                            OmsPostUtil.PostXml(omsXml);
+
+                        } else {
+                            JSONArray skus = (JSONArray) product.get("skus");
+                            for (int y = 0; y < skus.size(); y++) {
+                                JSONObject sku = (JSONObject) skus.get(y);
+                                String skuCode = sku.getString("code");
+
+                                String omsXml =
+                                        "<Service>\n" +
+                                                "  <ServiceURL>SKURegister</ServiceURL>\n" +
+                                                "  <ServiceAction>TRANSACTION</ServiceAction>\n" +
+                                                "  <ServiceData>\n" +
+                                                "    <SKURegister>\n" +
+                                                "      <ClientId>" + clientId + "</ClientId>\n" +
+                                                "      <SKUCode>" + itemCode + "_" + skuCode + "</SKUCode>\n" +
+                                                "      <GoodsItemNo></GoodsItemNo>\n" +
+                                                "      <SKUName>" + sku.getString("name") + "</SKUName>\n" +
+                                                "      <SKUPrice>" + sku.getString("sales_price") + "</SKUPrice>\n" +
+                                                "      <SKUCount></SKUCount>\n" +
+                                                "      <SKUModel>" + sku.getString("name") + "</SKUModel>\n" +
+                                                "      <MailTaxNo>" + sku.getString("tax_no") + "</MailTaxNo>\n" +
+                                                "      <HsCode></HsCode>\n" +
+                                                "      <WarehouseNo>" + stockId + "</WarehouseNo>\n" +
+                                                "      <WarehouseLocation></WarehouseLocation>\n" +
+                                                "      <DeclareMeasureUnit></DeclareMeasureUnit>\n" +
+                                                "      <ProductionMarketingCountry></ProductionMarketingCountry>\n" +
+                                                "      <GoodsNetWeight>" + sku.getString("weight") + "</GoodsNetWeight>\n" +
+                                                "      <GoodsRoughWeight>" + sku.getString("weight") + "</GoodsRoughWeight>\n" +
+                                                "      <Length></Length> \n  " +
+                                                "      <Width></Width> \n  " +
+                                                "      <Height></Height>\n" +
+                                                "      <Description></Description>\n" +
+                                                "      <LabelCode>" + sku.getString("bar_code") + "</LabelCode>\n" +
+                                                "      <LabelCode1></LabelCode1>\n" +
+                                                "      <LabelCode2></LabelCode2>\n" +
+                                                "      <LabelCode3></LabelCode3>\n" +
+                                                "      <SKUImageURL1>" + product.getString("pic_url") + "</SKUImageURL1>\n" +
+                                                "      <SKUImageURL2></SKUImageURL2>\n" +
+                                                "      <SKUImageURL3></SKUImageURL3>\n" +
+                                                "      <SKUImageURL4></SKUImageURL4>\n" +
+                                                "      <SKUImageURL5></SKUImageURL5>\n" +
+                                                "      <FirstUnit></FirstUnit>\n" +
+                                                "      <SecondUnit></SecondUnit>\n" +
+                                                "     <Brand></Brand>\n" +
+                                                "     <DueDays></DueDays>\n" +
+                                                "    <WarningStock></WarningStock>\n" +
+                                                "    </SKURegister>\n" +
+                                                "  </ServiceData>\n" +
+                                                "</Service>\n";
+                               OmsPostUtil.PostXml(omsXml);
+                            }
+                        }
+                    }
+                }
+                return result;
+            } else if (method.equals("gy.erp.purchase.get"))//采购入库单的查询
+            {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                if(!object.containsKey("client_id")
+                        || StringUtils.isBlank(object.getString("client_id")))
+                {
+                    return "缺少 client_id";
+                }
+                String clientId = object.getString("client_id");
+                String stockId = object.getString("warehouse_code");
+                object.remove("client_id");
+                String sendString = object.toJSONString();
+                String sign = GuanYiPostUtil.sign(sendString, GuanYiPostUtil.SECRET);
+                object.put("sign", sign);
+                String sendParam = object.toJSONString();
+                //管易回执
+                String result = GuanYiPostUtil.sendPost(GuanYiPostUtil.URL, sendParam);
+                JSONObject jsonGy = (JSONObject) JSONPath.read(result, "$");
+                String success = jsonGy.getString("success");
+                if (success.equals("false")) {
+                    return result;
+                }
+                //采购单 Array
+                JSONArray orders = (JSONArray) jsonGy.get("purchaseOrderList");
+                if (null == orders || orders.size() == 0) {
+                    return result;
+                }
+
+                for (int j = 0; j < orders.size(); j++)
+                {
+                    JSONObject order = (JSONObject) orders.get(j);
+                    //订单的商品 集
+                    JSONArray details = (JSONArray) order.get("detailList");
+                    String omsXml = "<Service>\n" +
+                            "\t<ServiceURL>HaitaoInboundPlan</ServiceURL>\n" +
+                            "\t<ServiceAction>neteasePurchase</ServiceAction>\n" +
+                            "\t<UserName>" + clientId+ "</UserName>\n" +
+                            "\t<Platform></Platform>\n" +
+                            "\t<ChannelName></ChannelName>\n" +
+                            "\t<ServiceData>\n" +
+                            "\t\t<contract_no/>\n" +
+                            "\t\t<expect_arrival_time>" + sdf.format(new Date()) +"</expect_arrival_time>\n" +
+                            "\t\t<order_items>\n";
+
+                    for(int x=0; x<details.size();x++)
+                    {
+                        JSONObject detail = (JSONObject)details.get(x);
+
+                        omsXml += "\t\t  <e>\n" +
+                                "\t\t  \t<OrderItemId></OrderItemId>\n" +
+                                "\t\t\t<barcode/>\n" +
+                                "\t\t\t<goods_en_name>"+ detail.getString("sku_name") +"</goods_en_name>\n" +
+                                "\t\t\t<goods_name>"+ detail.getString("sku_name") +"</goods_name>\n" +
+                                "\t\t\t<product_no>" + detail.getString("item_code") + "</product_no>\n" +
+                                "\t\t\t<qty>" + detail.getString("qty") + "</qty>\n" +
+                                "\t\t\t<skuBarcode/>\n" +
+                                "\t\t\t<sku_id>"+ detail.getString("item_code") + "_" + detail.getString("sku_code") +"</sku_id>\n" +
+                                "\t\t\t<sku_name>"+ detail.getString("sku_name") +"</sku_name>\n" +
+                                "\t\t  </e>\n";
+                    }
+
+                    omsXml += "\t\t</order_items>\n" +
+                            "\t\t<purchase_id>" + order.getString("code") + "</purchase_id>\n" +
+                            "\t\t<remark/>\n" +
+                            "\t\t<stock_id>"+ stockId +"</stock_id>\n" +
+                            "\t\t<supplier_id>" + order.getString("supplier_code") + "</supplier_id>\n" +
+                            "\t\t<NoEnvelope>Y</NoEnvelope>\n" +
+                            "\t\t<prevInOrderCodeTallied/>\n" +
+                            "\t</ServiceData>\n" +
+                            "</Service>\n";
+                    OmsPostUtil.PostXml(omsXml);
+                }
+                return result;
+            } else {
+                return "未知的method";
+            }
+        }
+        return "";
+    }
+}

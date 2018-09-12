@@ -1,0 +1,12 @@
+#wharf Configuration
+wharf.container=spring,logback
+wharf.reference.check=false
+wharf.consumer.check=false
+
+#Database Configuration
+jdbc.driverClassName=org.postgresql.Driver
+jdbc.url=jdbc:postgresql://47.94.43.221:5432/quartz
+jdbc.username=postgres
+jdbc.password=ikats@2017!@#
+
+ibatis.transaction.AwareDataSource=dataSource

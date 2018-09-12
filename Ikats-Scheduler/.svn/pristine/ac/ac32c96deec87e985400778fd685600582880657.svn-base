@@ -1,0 +1,126 @@
+package com.ikats.scheduler.util;
+
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.ShutdownSignalException;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/11/15 11:25.
+ * @Description : Indulge in study , wasting away
+ */
+public class SimpleConsumer extends RabbitMqConfig implements Runnable,Consumer
+{
+    public enum XT {
+        DEFAULT, DIRECT, TOPIC, HEADERS, FANOUT
+    }
+
+    private static String XCHG_NAME = "xchg3";
+    private XT xtValue;
+
+    public SimpleConsumer(String queueName) throws TimeoutException,IOException
+    {
+        super(queueName);
+        xtValue = XT.DEFAULT;
+    }
+    public SimpleConsumer(String queueName,XT xt) throws TimeoutException,IOException
+    {
+        super(queueName);
+        xtValue = xt;
+    }
+
+    public void handleConsumeOk(String s) {}
+
+    public void handleCancelOk(String s) {}
+
+    public void handleCancel(String s) throws IOException {}
+
+    public void handleShutdownSignal(String s, ShutdownSignalException e) {}
+
+    public void handleRecoverOk(String s) {}
+
+    public void handleDelivery(String s, Envelope envelope, AMQP.BasicProperties basicProperties, byte[] bytes) throws IOException
+    {
+        //消费消费
+        String msg = new String(bytes,"utf-8");
+        System.out.println("consume msg: "+msg);
+        try
+        {
+            //具体的业务操作
+            TimeUnit.MILLISECONDS.sleep((long) (Math.random()*100));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        //手动消息确认 , deliveryTag:该消息的index , multiple：是否批量.true:将一次性拒绝所有小于deliveryTag的消息。requeue：被拒绝的是否重新入队列
+        //this.channel.basicAck(envelope.getDeliveryTag(),false);
+        this.channel.basicNack(envelope.getDeliveryTag(),false,true);
+    }
+
+    public void run()
+    {
+        try
+        {
+            switch (xtValue) {
+                case DEFAULT:
+                    //队列的相关参数需要与第一次定义该队列时相同，否则会出错，
+                    // 使用channel.queueDeclarePassive()可只被动绑定已有队列，而不创建
+                     /*
+                    申明一个队列，如果这个队列不存在，将会被创建
+                        参数1：队列名称
+                        参数2：为true时server重启队列不会消失
+                        参数3：队列是否是独占的，如果为true只能被一个connection使用，其他连接建立时会抛出异常
+                        参数4：队列不再使用时是否自动删除（没有连接，并且没有未处理的消息)
+                        参数5：建立队列时的其他参数
+                    */
+                    channel.queueDeclare(queueName, true, false, false, null);
+                    break;
+                case FANOUT:
+                    //接收端也声明一个fanout交换机
+                    channel.exchangeDeclare(XCHG_NAME, "fanout", true, true, null);
+                    //channel.exchangeDeclarePassive() 可以使用该函数使用一个已经建立的exchange
+                    //声明一个临时队列，该队列会在使用完比后自动销毁
+                    queueName = channel.queueDeclare().getQueue();
+                    //将队列绑定到交换机,参数3无意义此时
+                    channel.queueBind(queueName, XCHG_NAME, "");
+                    break;
+                case DIRECT:
+                    channel.exchangeDeclare(XCHG_NAME, "direct", true, true, null);
+                    queueName = channel.queueDeclare().getQueue();
+                    channel.queueBind(queueName, XCHG_NAME, "info"); //绑定一个routing key，可以绑定多个
+                    channel.queueBind(queueName, XCHG_NAME, "warning");
+                    break;
+                case TOPIC:
+                    channel.exchangeDeclare(XCHG_NAME, "topic", true, true, null);
+                    queueName = channel.queueDeclare().getQueue();
+                    channel.queueBind(queueName, XCHG_NAME, "warning.#"); //监听两种模式 #匹配一个或多个单词 *匹配一个单词
+                    channel.queueBind(queueName, XCHG_NAME, "*.blue");
+                    break;
+                case HEADERS:
+                    channel.exchangeDeclare(XCHG_NAME, "headers", true, true, null);
+                    queueName = channel.queueDeclare().getQueue();
+                    Map<String, Object> headers = new HashMap<String, Object>() {{
+                        put("name", "test");
+                        put("sex", "male");
+                        put("x-match", "any");//all==匹配所有条件，any==匹配任意条件
+                    }};
+                    channel.queueBind(queueName,XCHG_NAME, "", headers);
+                    break;
+            }
+            //参数1:队列名称
+            //参数2:是否发送ack包，不发送ack消息会持续在服务端保存，直到收到ack。  可以通过channel.basicAck手动回复ack
+            //参数3:消费者
+            channel.basicQos(10); //server push消息时的队列长度 , 每次取一条数据
+            channel.basicConsume(queueName,false,this);
+            channel.basicGet(queueName,true); //使用该函数主动去服务器检索是否有新消息，而不是等待服务器推送
+        }catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+}

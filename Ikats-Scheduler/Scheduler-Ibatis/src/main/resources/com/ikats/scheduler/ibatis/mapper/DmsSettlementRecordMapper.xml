@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ikats.scheduler.ibatis.mapper.DmsSettlementRecordMapper" >
+	<!-- 字段实体关系映射 -->
+	<resultMap id="BaseResultMap" type="com.ikats.scheduler.entity.bean.DmsSettlementRecordBean" >
+		<id column="id" property="id" jdbcType="BIGINT" />  <!--  -->
+		<result column="order_number" property="orderNumber" jdbcType="VARCHAR" />
+		<result column="amounts" property="amounts" jdbcType="NUMERIC" />
+		<result column="state" property="state" jdbcType="VARCHAR" />
+		<result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
+	</resultMap>
+
+	<!-- 字段列表 -->
+	<sql id="Base_Column_List" >
+		id
+		,order_number
+		,amounts
+		,state
+		,create_time
+	</sql>
+
+	<sql id="Base_Table_Name">
+		dms_settlement_record
+	</sql>
+
+	<!-- 保存单条记录 -->
+	<insert id="insert" parameterType="com.ikats.scheduler.entity.bean.DmsSettlementRecordBean" useGeneratedKeys="true" keyProperty="id">
+		insert into <include refid="Base_Table_Name" /> (
+		order_number
+		,amounts
+		,state
+		,create_time
+		)
+		values (
+		#{orderNumber,jdbcType=VARCHAR}
+		,#{amounts,jdbcType=NUMERIC}
+		,#{state,jdbcType=VARCHAR}
+		,now()
+		)
+	</insert>
+
+	<!-- 保存一批记录 -->
+	<insert id="insertList" parameterType="java.util.List" >
+		insert into <include refid="Base_Table_Name" /> (
+		order_number
+		,amounts
+		,state
+		,create_time
+		)
+		values
+		<foreach collection="list" item="bean" index="index" separator="," >
+			(
+			#{bean.orderNumber,jdbcType=VARCHAR}
+			,#{bean.amounts,jdbcType=NUMERIC}
+			,#{bean.state,jdbcType=VARCHAR}
+			,now()
+			)
+		</foreach>
+	</insert>
+
+	<!-- 根据ID更新记录 -->
+	<update id="updateState" parameterType="com.ikats.scheduler.entity.bean.DmsSettlementRecordBean">
+		update <include refid="Base_Table_Name" /> set state = #{state,jdbcType=VARCHAR}
+		where id = #{id,jdbcType=BIGINT}
+	</update>
+
+	<!-- 根据ID查询记录 -->
+	<select id="selectByKey" resultMap="BaseResultMap" parameterType="java.lang.Long">
+		select <include refid="Base_Column_List" />
+		from <include refid="Base_Table_Name" />
+		where id = #{id,jdbcType=BIGINT}
+	</select>
+
+	<!-- 分页查询 -->
+	<select id="pageByQuery" resultMap="BaseResultMap">
+		select <include refid="Base_Column_List"/>
+		from <include refid="Base_Table_Name" />
+		order by id desc
+		limit ${pageSize} offset ${pageNum}
+	</select>
+
+	<!-- 查询记录数量 -->
+	<select id="selectCount" resultType="java.lang.Long"
+			parameterType="com.ikats.scheduler.entity.bean.DmsSettlementRecordBean">
+		select count(1)
+		from <include refid="Base_Table_Name" />
+	</select>
+
+	<!-- 查出所有的记录 -->
+	<select id="selectAllRecord" resultMap="BaseResultMap">
+		select <include refid="Base_Column_List"/>
+		from <include refid="Base_Table_Name" />
+		order by id desc
+	</select>
+
+</mapper>

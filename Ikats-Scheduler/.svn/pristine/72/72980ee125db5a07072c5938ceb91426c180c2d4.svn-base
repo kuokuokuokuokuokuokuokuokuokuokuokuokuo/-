@@ -1,0 +1,26 @@
+package com.ikats.scheduler.util;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/12/7 14:04.
+ * @Description : Indulge in study , wasting away
+ */
+public class JobDateUtil
+{
+    /**
+     * 获得半小时之前的时间
+     * @param now
+     * @return
+     */
+    public static String getHalfhourAgo(Calendar now)
+    {
+        now.add(Calendar.MINUTE, -30);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        String halfHour = sdf.format(now.getTimeInMillis());
+        return halfHour;
+    }
+}

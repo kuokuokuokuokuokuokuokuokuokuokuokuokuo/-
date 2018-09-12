@@ -1,0 +1,9 @@
+import api from '../Common/WebAPI';
+
+export default class ServiceTestService
+{
+    static conLogin(data)
+    {
+
+    }
+}

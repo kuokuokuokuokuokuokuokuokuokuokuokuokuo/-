@@ -1,0 +1,210 @@
+package com.ikats.scheduler.job;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONPath;
+import com.ikats.scheduler.email.Email;
+import com.ikats.scheduler.entity.bean.GYSkuBean;
+import com.ikats.scheduler.entity.enumerate.SendStatus;
+import com.ikats.scheduler.logic.GYSkuLogic;
+import com.ikats.scheduler.util.*;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.quartz.QuartzJobBean;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 定时任务---获取管易商品备案
+ *
+ * @Author : liu kuo
+ * @Date : 2017/10/26 15:14.
+ * @Description : Indulge in study , wasting away
+ */
+
+public class GuanyYiSkuRegisterMinuteJob extends QuartzJobBean {
+
+    @Autowired
+    private GYSkuLogic skuLogic;
+
+    private static String FACE_NAME = "gy.erp.items.get";
+
+    @Override
+    protected void executeInternal(JobExecutionContext jobExecutionContext) throws JobExecutionException {
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SystemOutMessage.start("GuanYi_GetSkuRegister", sdf.format(new Date()));
+        if (null == skuLogic)
+        {
+            SystemOutMessage.body("false 系统异常");
+            return;
+        }
+        List<GYSkuBean> skuBeans = new ArrayList<GYSkuBean>();
+        try {
+            for (int page = 1; page < 10000; page++)
+            {
+                Calendar now = Calendar.getInstance();
+                JSONObject sendJson = new JSONObject();
+                sendJson.put("appkey", GuanYiPostUtil.APPKEY);
+                sendJson.put("sessionkey", GuanYiPostUtil.SESSIONKEY);
+                sendJson.put("method", FACE_NAME);
+                sendJson.put("end_date", sdf.format(now.getTimeInMillis()));
+                sendJson.put("start_date", sdf.format(JobDateUtil.backToThePastMinute(now, 50).getTimeInMillis()));
+                sendJson.put("page_no", page);
+                sendJson.put("page_size", "100");
+                String sendString = sendJson.toJSONString();
+                String sign = GuanYiPostUtil.sign(sendString, GuanYiPostUtil.SECRET);
+                sendJson.put("sign", sign);
+                String sendParam = sendJson.toJSONString();
+                //管易回执
+                String result = GuanYiPostUtil.sendPost(GuanYiPostUtil.URL, sendParam);
+                JSONObject jsonGy = (JSONObject) JSONPath.read(result, "$");
+                String success = jsonGy.getString("success");
+
+                if (success.equals("false"))
+                {
+                    return;
+                }
+                JSONArray items = (JSONArray) jsonGy.get("items");
+                if (null == items || items.size() == 0)
+                {
+                    System.out.println("----------------------- 商品备案查询无最新数据 ----------------------");
+                    break;
+                }
+                for (int i = 0; i < items.size(); i++)
+                {
+                    JSONObject product = (JSONObject) items.get(i);
+                    String itemCode = product.getString("code");
+                    //是否为组合商品
+                    String combine = product.getString("combine");
+                    if (combine.equals("true"))
+                    {
+                        JSONArray combineItems = (JSONArray) product.get("combine_items");
+                        //组合商品
+                        String omsXml = "<Service>\n" +
+                                "    <ServiceURL>GoodsRegister</ServiceURL>\n" +
+                                "    <ServiceAction>saveGoodsRegister</ServiceAction>\n" +
+                                "    <UserName></UserName>\n" +
+                                "    <Platform></Platform>\n" +
+                                "    <ChannelName></ChannelName>\n" +
+                                "    <ServiceData>\n" +
+                                "        <ClientID></ClientID>\n" +
+                                "        <GoodsCode>" + product.getString("code") + "</GoodsCode>\n" +
+                                "        <GoodsName>" + product.getString("name") + "</GoodsName>\n" +
+                                "        <GoodsRoughWeight>" + product.getString("weight") + "</GoodsRoughWeight>\n" +
+                                "        <GoodsPrice>" + product.getString("sales_price") + "</GoodsPrice>\n" +
+                                "        <GoodsNetWeight>" + product.getString("weight") + "</GoodsNetWeight>\n" +
+                                "        <Skus>\n";
+                        for (int x = 0; x < combineItems.size(); x++)
+                        {
+                            JSONObject combineItem = (JSONObject) combineItems.get(x);
+                            omsXml +=
+                                    "   <Sku>\n" +
+                                            "       <SKUCode>" + combineItem.getString("item_code") + "_" + combineItem.getString("item_sku_code") + "</SKUCode>\n" +
+                                            "       <SKUCount>" + JobDataTransferUtil.stringToInt(combineItem.getString("qty")) + "</SKUCount>\n" +
+                                            "       <MailTax>" + product.getString("tax_no") + "</MailTax>\n" +
+                                            "       <ProductMarketingCountry>142</ProductMarketingCountry>\n" +
+                                            "   </Sku>\n";
+                        }
+                        omsXml +=
+                                "        </Skus>\n" +
+                                        "    </ServiceData>\n" +
+                                        "</Service>";
+
+                        GYSkuBean skuBean = new GYSkuBean();
+                        skuBean.setIdRecord(1L);
+                        skuBean.setAppKey(GuanYiPostUtil.APPKEY);
+                        skuBean.setState(SendStatus.INIT.getValue());
+                        skuBean.setTimes(0);
+                        skuBean.setCombine("1");
+                        skuBean.setSkuCode(product.getString("code"));
+                        skuBean.setCreateTime(new Date());
+                        skuBean.setOmsRequest(omsXml);
+                        skuBeans.add(skuBean);
+                    } else {
+                        JSONArray skus = (JSONArray) product.get("skus");
+                        for (int j = 0; j < skus.size(); j++)
+                        {
+                            JSONObject sku = (JSONObject) skus.get(j);
+                            String skuCode = sku.getString("code");
+
+                            String omsXml =
+                                    "<Service>\n" +
+                                            "  <ServiceURL>SKURegister</ServiceURL>\n" +
+                                            "  <ServiceAction>TRANSACTION</ServiceAction>\n" +
+                                            "  <ServiceData>\n" +
+                                            "    <SKURegister>\n" +
+                                            "      <ClientId></ClientId>\n" +
+                                            "      <SKUCode>" + itemCode + "_" + skuCode + "</SKUCode>\n" +
+                                            "      <GoodsItemNo></GoodsItemNo>\n" +
+                                            "      <SKUName>" + product.getString("name") + "</SKUName>\n" +
+                                            "      <SKUPrice>" + sku.getString("sales_price") + "</SKUPrice>\n" +
+                                            "      <SKUCount></SKUCount>\n" +
+                                            "      <SKUModel>" + sku.getString("name") + "</SKUModel>\n" +
+                                            "      <MailTaxNo>" + sku.getString("tax_no") + "</MailTaxNo>\n" +
+                                            "      <HsCode></HsCode>\n" +
+                                            "      <WarehouseNo></WarehouseNo>\n" +
+                                            "      <WarehouseLocation></WarehouseLocation>\n" +
+                                            "      <DeclareMeasureUnit></DeclareMeasureUnit>\n" +
+                                            "      <ProductionMarketingCountry></ProductionMarketingCountry>\n" +
+                                            "      <GoodsNetWeight>" + sku.getString("weight") + "</GoodsNetWeight>\n" +
+                                            "      <GoodsRoughWeight>" + sku.getString("weight") + "</GoodsRoughWeight>\n" +
+                                            "      <Length></Length> \n  " +
+                                            "      <Width></Width> \n  " +
+                                            "      <Height></Height>\n" +
+                                            "      <Description></Description>\n" +
+                                            "      <LabelCode>" + sku.getString("bar_code") + "</LabelCode>\n" +
+                                            "      <LabelCode1></LabelCode1>\n" +
+                                            "      <LabelCode2></LabelCode2>\n" +
+                                            "      <LabelCode3></LabelCode3>\n" +
+                                            "      <SKUImageURL1>" + product.getString("pic_url") + "</SKUImageURL1>\n" +
+                                            "      <SKUImageURL2></SKUImageURL2>\n" +
+                                            "      <SKUImageURL3></SKUImageURL3>\n" +
+                                            "      <SKUImageURL4></SKUImageURL4>\n" +
+                                            "      <SKUImageURL5></SKUImageURL5>\n" +
+                                            "      <FirstUnit></FirstUnit>\n" +
+                                            "      <SecondUnit></SecondUnit>\n" +
+                                            "     <Brand></Brand>\n" +
+                                            "     <DueDays></DueDays>\n" +
+                                            "    <WarningStock></WarningStock>\n" +
+                                            "    </SKURegister>\n" +
+                                            "  </ServiceData>\n" +
+                                            "</Service>\n";
+
+                            GYSkuBean skuBean = new GYSkuBean();
+                            skuBean.setIdRecord(1L);
+                            skuBean.setAppKey(GuanYiPostUtil.APPKEY);
+                            skuBean.setState(SendStatus.INIT.getValue());
+                            skuBean.setTimes(0);
+                            skuBean.setCombine("0");
+                            skuBean.setSkuCode(itemCode + "_" + skuCode);
+                            skuBean.setCreateTime(new Date());
+                            skuBean.setOmsRequest(omsXml);
+                            skuBeans.add(skuBean);
+                        }
+                    }
+                }
+                if (items.size() < 100) break;
+            }
+
+            this.skuLogic.insertList(skuBeans);
+            if (!skuLogic.getSuccess())
+            {
+                SystemOutMessage.body(this.skuLogic.getSuccess() + this.skuLogic.getMessage());
+                return;
+            }
+        }catch (Exception e)
+        {
+            SystemOutMessage.body(" false  " + e.getMessage());
+            Email.sendTextMail("liukuo@ikats.com", "管易商品备案抓取任务", ExceptionUtils.getStackTrace(e));
+            Email.sendTextMail("zhangxiaotao@ikats.com", "管易商品备案抓取任务", ExceptionUtils.getStackTrace(e));
+            Email.sendTextMail("wuqing@ikats.com", "管易商品备案抓取任务", ExceptionUtils.getStackTrace(e));
+        }
+        SystemOutMessage.end("GuanYi_GetSkuRegister", sdf.format(new Date()));
+    }
+}

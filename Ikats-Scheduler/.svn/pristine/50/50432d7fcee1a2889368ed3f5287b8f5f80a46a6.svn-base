@@ -1,0 +1,69 @@
+package com.ikats.scheduler.test;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONPath;
+import com.ikats.scheduler.util.OmsPostUtil;
+import com.ikats.scheduler.util.SZGuanYiPostUtil;
+import com.ikats.scheduler.util.SZOmsPostUtil;
+import com.ikats.scheduler.util.SystemOutMessage;
+
+import java.io.IOException;
+
+/**
+ * 四洲对接管易的测试main函数
+ * @Author : liu kuo
+ * @Date : 2018/5/3 16:07.
+ * @Description : Indulge in study , wasting away
+ */
+public class SZGuanYiPostTest
+{
+    public static void main(String[] args) throws IOException
+    {
+       /* JSONObject sendJson = new JSONObject();
+        sendJson.put("appkey", SZGuanYiPostUtil.APPKEY);
+        sendJson.put("sessionkey", SZGuanYiPostUtil.SESSIONKEY);
+        sendJson.put("method", "gy.erp.item.barcode.get");
+//        sendJson.put("method", "gy.erp.items.get");
+//        sendJson.put("start_date","2018-05-02 00:00:00");
+//        sendJson.put("end_date","2018-05-05 21:00:00");
+        sendJson.put("item_code","LFQD0073-1");
+        sendJson.put("page_no",1);
+        sendJson.put("page_size", "100");
+        String sendString = sendJson.toJSONString();
+        String sign = SZGuanYiPostUtil.sign(sendString, SZGuanYiPostUtil.SECRET);
+        sendJson.put("sign", sign);
+        String sendParam = sendJson.toJSONString();
+        //管易回执
+        String result = SZGuanYiPostUtil.sendPost(SZGuanYiPostUtil.URL, sendParam);
+        System.out.println(result);*/
+
+        JSONObject barJson = new JSONObject();
+        barJson.put("appkey", SZGuanYiPostUtil.APPKEY);
+        barJson.put("sessionkey", SZGuanYiPostUtil.SESSIONKEY);
+        barJson.put("method", "gy.erp.item.barcode.get");
+        barJson.put("item_code","LFQD0073-1");
+        barJson.put("page_no",1);
+        barJson.put("page_size", "100");
+        String barString = barJson.toJSONString();
+        String barSign = SZGuanYiPostUtil.sign(barString, SZGuanYiPostUtil.SECRET);
+        barJson.put("sign", barSign);
+        String barParam = barJson.toJSONString();
+        //管易回执
+        String abrResult = SZGuanYiPostUtil.sendPost(SZGuanYiPostUtil.URL, barParam);
+        JSONObject barGy = (JSONObject) JSONPath.read(abrResult, "$");
+        String barSucc = barGy.getString("success");
+        String barCode = "";
+        if(barSucc.equals("true"))
+        {
+            JSONArray barCodes = (JSONArray) barGy.get("barcode");
+            if(barCodes.size() > 0)
+            {
+                JSONObject barObject = (JSONObject)barCodes.get(0);
+                barCode = barObject.getString("barcode");
+            }
+        }
+
+        System.out.println(barCode);
+    }
+}

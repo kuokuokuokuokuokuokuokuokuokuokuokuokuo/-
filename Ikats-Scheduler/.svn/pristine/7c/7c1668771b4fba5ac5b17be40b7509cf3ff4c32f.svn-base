@@ -1,0 +1,23 @@
+package com.ikats.scheduler.util;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/12/7 14:04.
+ * @Description : Indulge in study , wasting away
+ */
+public class JobDateUtil
+{
+    /**
+     * 回到过去 ,minute 分钟之前
+     * @param now
+     * @return
+     */
+    public static Calendar  backToThePastMinute(Calendar now ,int minute)
+    {
+        now.add(Calendar.MINUTE, -minute);
+        return now;
+    }
+}

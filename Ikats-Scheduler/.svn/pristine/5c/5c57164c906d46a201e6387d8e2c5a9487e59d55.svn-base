@@ -1,0 +1,149 @@
+package com.ikats.scheduler.job;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONPath;
+import com.ikats.scheduler.entity.bean.JSTCancelOrderBean;
+import com.ikats.scheduler.entity.enumerate.SendStatus;
+import com.ikats.scheduler.logic.JSTCancelOrderLogic;
+import com.ikats.scheduler.util.*;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.quartz.QuartzJobBean;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 定时任务获取 - 聚水潭 - 的发货单
+ *
+ * @Author : liu kuo
+ * @Date : 2017/10/26 15:14.
+ * @Description : Indulge in study , wasting away
+ */
+
+public class JuShuiTanGetCancelOrdersJob extends QuartzJobBean {
+
+    @Autowired
+    private JSTCancelOrderLogic orderLogic;
+
+    @Override
+    protected void executeInternal(JobExecutionContext jobExecutionContext) throws JobExecutionException {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SystemOutMessage.start("JuShuiTan_GetOrders", sdf.format(new Date()));
+        if (null == orderLogic) {
+            SystemOutMessage.body("false 系统异常");
+            return;
+        }
+        try {
+            //获取到 appkey 对应的客户关系
+            String clientXml = "<eFreightService>\n" +
+                    "<ServiceURL>Client</ServiceURL>\n" +
+                    "<ServiceAction>queryClient</ServiceAction>\n" +
+                    "<ServiceData>\n" +
+                    "<ChannelId/>\n" +
+                    "<AdminUserName>" + JuShuiTanPostUtil.PARTNER_ID + "</AdminUserName>\n" +
+                    "<StockId/>\n" +
+                    "<ClientId/>\n" +
+                    "</ServiceData>\n" +
+                    "</eFreightService>\n";
+
+            String clients = OmsPostUtil.PostXml(clientXml);
+
+            JSONObject jsonClients = (JSONObject) JSONPath.read(clients, "$");
+            if (null == jsonClients)
+            {
+                SystemOutMessage.body("OMS --  client 查询失败 -- 终止取消订单查询");
+                return;
+            }
+            String clientSuccess = jsonClients.getString("success");
+            if (null == clientSuccess || !clientSuccess.equals("true")) {
+                SystemOutMessage.body("OMS --  client 查询失败 -- 终止订单发送");
+                return;
+            }
+            JSONArray client = jsonClients.getJSONArray("client");
+            if(null == client || client.size() == 0)
+            {
+                SystemOutMessage.body("OMS --  无客户数据 -- 终止订单发送");
+                return;
+            }
+            for (int i = 0; i < client.size(); i++)
+            {
+                JSONObject jClient = (JSONObject) client.get(i);
+                //客户
+                String clientId = jClient.getString("clientid");
+                //仓库
+                String stockId = jClient.getString("stockid");
+                //渠道
+                String channelId = jClient.getString("channelid");
+
+                String sPartnerId = JuShuiTanPostUtil.PARTNER_ID;
+                String sPartnerKey = JuShuiTanPostUtil.PARTNER_KEY;
+                String sToken = JuShuiTanPostUtil.TOKEN;
+                String sHostUrl = "http://a1q40taq0j.api.taobao.com/router/qmtest";
+                String sMethod = "jst.orders.query";
+                String sTaobaoAPPKEYString = JuShuiTanPostUtil.TAO_KEY;
+                String sTaobaoAPPSECRET = JuShuiTanPostUtil.TAO_SECRET;
+                JSTQuery api = new JSTQuery(sTaobaoAPPKEYString, sTaobaoAPPSECRET, sPartnerId, sPartnerKey, sToken, sMethod, sHostUrl);
+                api.AddArg("modified_begin", "2017-11-1");
+                api.AddArg("modified_end", "2017-11-3");
+                api.AddArg("status", "Cancelled");
+//                api.AddArg("shop_id", channelId);//该测试店铺暂无数据
+                String sData = api.QueryData();
+                JSONObject jsonJST = (JSONObject) JSONPath.read(sData, "$");
+                JSONObject response = jsonJST.getJSONObject("response");
+                boolean success = response.getBoolean("issuccess");
+                JSONArray orders = response.getJSONArray("orders");
+                if(!success)
+                {
+                    System.out.println("客户 :" + clientId + "订单查询失败!" + sData);
+                    continue;
+                }
+                if(null == orders || orders.size() == 0)
+                {
+                    continue;
+                }
+                List<JSTCancelOrderBean> orderBeans = new ArrayList<JSTCancelOrderBean>();
+                for(int j=0; j<orders.size(); j++)
+                {
+                    JSONObject order = orders.getJSONObject(j);
+                    JSTCancelOrderBean orderBean = new JSTCancelOrderBean();
+                    orderBean.setAppKey(JuShuiTanPostUtil.PARTNER_ID);
+                    orderBean.setOrderNo(order.getString("so_id"));
+                    orderBean.setState(SendStatus.INIT.getValue());
+                    orderBean.setTimes(0);
+                    orderBean.setCreateTime(new Date());
+
+                    String omsXml =
+                            "<Service>\n" +
+                                    "<ServiceURL>OMSOrder</ServiceURL>\n" +
+                                    "<ServiceAction>CancelOrder</ServiceAction>\n" +
+                                    "<ServiceData>\n" +
+                                    "<OrderNo>" + order.getString("so_id") + "</OrderNo>\n" +
+                                    "<UserName>" + clientId + "</UserName>\n" +
+                                    "<Operater>" + clientId + "</Operater>\n" +
+                                    "</ServiceData>\n" +
+                                    "</Service>\n";
+
+                    orderBean.setOmsRequest(omsXml);
+                    orderBeans.add(orderBean);
+                }
+
+                this.orderLogic.insertList(orderBeans);
+                if (!orderLogic.getSuccess())
+                {
+                    SystemOutMessage.body(this.orderLogic.getSuccess() + this.orderLogic.getMessage());
+                    return;
+                }
+            }
+        } catch (Exception e)
+        {
+            System.out.println("系统异常!" + e.getMessage());
+            return;
+        }
+
+        SystemOutMessage.end("JuShuiTan", sdf.format(new Date()));
+    }
+}

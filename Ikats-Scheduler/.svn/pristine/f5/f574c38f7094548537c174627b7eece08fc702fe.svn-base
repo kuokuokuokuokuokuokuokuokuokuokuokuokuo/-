@@ -1,0 +1,30 @@
+package com.ikats.scheduler.job;
+
+import com.ikats.scheduler.util.GuanYiPostUtil;
+import com.ikats.scheduler.util.OmsPostUtil;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/12/5 16:44.
+ * @Description : Indulge in study , wasting away
+ */
+public class TestTTT
+{
+    public static void main(String[] args)
+    {
+        String omsXml = "<eFreightService>\n" +
+                            "<ServiceURL>Client</ServiceURL>\n" +
+                            "<ServiceAction>queryClient</ServiceAction>\n" +
+                            "<ServiceData>\n" +
+                            "<ChannelId/>\n" +
+                            "<AdminUserName>" + GuanYiPostUtil.APPKEY + "</AdminUserName>\n" +
+                            "<StockId/>\n" +
+                            "<ClientId/>\n" +
+                            "</ServiceData>\n" +
+                        "</eFreightService>\n";
+
+        String result = OmsPostUtil.PostXml(omsXml);
+
+        System.out.println(result);
+    }
+}

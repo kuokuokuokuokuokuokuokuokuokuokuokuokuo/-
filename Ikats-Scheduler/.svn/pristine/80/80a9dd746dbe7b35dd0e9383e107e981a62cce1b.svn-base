@@ -1,0 +1,186 @@
+package com.ikats.scheduler.job;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONPath;
+import com.ikats.scheduler.entity.bean.JSTPurchaseOrderBean;
+import com.ikats.scheduler.entity.enumerate.GYStatus;
+import com.ikats.scheduler.logic.JSTPurchaseOrderLogic;
+import com.ikats.scheduler.util.JuShuiTanPostUtil;
+import com.ikats.scheduler.util.MD5Utils;
+import com.ikats.scheduler.util.OmsPostUtil;
+import com.ikats.scheduler.util.SystemOutMessage;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.quartz.QuartzJobBean;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+
+/**
+ * @Author: Zhao Jianzhen
+ * @Date: Created in 14:20 2018/1/3
+ * @Description:
+ */
+public class JuShuiTanGetPurchaseOrdersJob extends QuartzJobBean {
+
+    @Autowired
+    private JSTPurchaseOrderLogic orderLogic;
+
+    @Override
+    protected void executeInternal(JobExecutionContext jobExecutionContext) throws JobExecutionException
+    {
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SystemOutMessage.start("JuShuiTan_PurchaseOrder",sdf.format(new Date()));
+        if(null == orderLogic)
+        {
+            SystemOutMessage.body("false 系统异常");
+            return;
+        }
+
+        ArrayList<JSTPurchaseOrderBean> orderBeans = new ArrayList<JSTPurchaseOrderBean>();
+
+        try {
+            for (int page = 1; page < 10000; page++) {
+
+                String method = "purchase.query";
+                Long ts = System.currentTimeMillis() / 1000;
+                JSONObject object = new JSONObject();
+                object.put("modified_begin", "2018-01-09 12:00:00");
+                object.put("modified_end", "2018-01-09 14:00:00");
+                object.put("page_index", page);
+                object.put("page_size", 30);
+                //sign	签名参数，按一定规则加密后的字符串 key,value  为传入的 get 参数，按传递顺序)(加密 key 中排除sign，method，partnerid)
+                // MD5(method +partnerid + (key1+value1+key2+value2+……) +partnerkey)*/
+                String url = JuShuiTanPostUtil.URL + "?token=" + JuShuiTanPostUtil.TOKEN + "&ts=" + ts + "&partnerid=" + JuShuiTanPostUtil.PARTNER_ID + "&method=" + method;
+                String objectValue = "token" + JuShuiTanPostUtil.TOKEN + "ts" + ts;
+                String sign = MD5Utils.md5(method + JuShuiTanPostUtil.PARTNER_ID + objectValue + JuShuiTanPostUtil.PARTNER_KEY);
+                url = url + "&sign=" + sign;
+//        System.out.println(url);
+                String msg = object.toJSONString();
+//        System.out.println(msg);
+                String result = JuShuiTanPostUtil.sendPost(url, msg);
+                JSONObject jsStr = JSONObject.parseObject(result);
+                JSONArray datas = jsStr.getJSONArray("datas");
+                Boolean success = jsStr.getBoolean("issuccess");
+
+                //获取到 appkey 对应的客户关系
+                String clientXml = "<eFreightService>\n" +
+                        "<ServiceURL>Client</ServiceURL>\n" +
+                        "<ServiceAction>queryClient</ServiceAction>\n" +
+                        "<ServiceData>\n" +
+                        "<ChannelId/>\n" +
+                        "<AdminUserName>" + JuShuiTanPostUtil.PARTNER_ID + "</AdminUserName>\n" +
+                        "<StockId/>\n" +
+                        "<ClientId/>\n" +
+                        "</ServiceData>\n" +
+                        "</eFreightService>\n";
+
+                String clients = OmsPostUtil.PostXml(clientXml);
+
+                JSONObject jsonClients = (JSONObject) JSONPath.read(clients, "$");
+                if (null == jsonClients) {
+                    SystemOutMessage.body("OMS --  client 查询失败 -- 终止取消采购单查询");
+                    return;
+                }
+                String clientSuccess = jsonClients.getString("success");
+                if (null == clientSuccess || !clientSuccess.equals("true")) {
+                    SystemOutMessage.body("OMS --  client 查询失败 -- 终止采购单发送");
+                    return;
+                }
+                JSONArray client = jsonClients.getJSONArray("client");
+                if (null == client || client.size() == 0) {
+                    SystemOutMessage.body("OMS --  无客户数据 -- 终止采购单发送");
+                    return;
+                }
+
+                for (int x = 0; x < client.size(); x++) {
+
+                    JSONObject jClient = (JSONObject) client.get(x);
+                    //客户
+                    String clientId = jClient.getString("clientid");
+                    //仓库
+                    String stockId = jClient.getString("stockid");
+                    if (!success) {
+                        System.out.println("客户 :" + clientId + "采购单查询失败!");
+                        continue;
+                    }
+                    if (null == datas || datas.size() == 0) {
+                        continue;
+                    }
+
+
+                    for (int i = 0; i < datas.size(); i++) {
+                        JSONObject order = (JSONObject) datas.get(i);
+                        Integer po_id = order.getInteger("po_id"); //订单号
+                        JSONArray items = order.getJSONArray("items");
+                        if (null == items) {
+                            continue;
+                        }
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("<Service>\n" +
+                                "\t<ServiceURL>HaitaoInboundPlan</ServiceURL>\n" +
+                                "\t<ServiceAction>neteasePurchase</ServiceAction>\n" +
+                                "\t<UserName>" + clientId + "</UserName>\n" +
+                                "\t<Platform>" + clientId + "</Platform>\n" +
+                                "\t<ChannelName>聚水潭</ChannelName>\n" +
+                                "\t<ServiceData>\n" +
+                                "\t\t<contract_no/>\n" +
+                                "\t\t<expect_arrival_time>" + sdf.format(new Date()) + "</expect_arrival_time>\n" +
+                                "\t\t<order_items>\n");
+                        for (int j = 0; j < items.size(); j++) {
+                            JSONObject item = items.getJSONObject(j);
+                            sb.append("\t\t  <e>\n" +
+                                    "\t\t  \t<OrderItemId></OrderItemId>\n" +
+                                    "\t\t\t<barcode></barcode>\n" +
+                                    "\t\t\t<goods_en_name/>\n" +
+                                    "\t\t\t<goods_name>" + (item.getString("name") == null ? "" : item.getString("name")) + "</goods_name>\n" +
+                                    "\t\t\t<product_no></product_no>\n" +
+                                    "\t\t\t<qty>" + (item.getInteger("qty") == null ? "" : item.getInteger("qty")) + "</qty>\n" +
+                                    "\t\t\t<skuBarcode></skuBarcode>\n" +
+                                    "\t\t\t<sku_id>" + (item.get("sku_id") == null ? "" : item.get("sku_id")) + "</sku_id>\n" +
+                                    "\t\t\t<sku_name>" + (item.getString("name") == null ? "" : item.getString("name")) + "</sku_name>\n" +
+                                    "\t\t\t<SN>3</SN>\n" +
+                                    "\t\t  </e>\n"
+                            );
+
+                        }
+                        sb.append("\t\t</order_items>\n" +
+                                "\t\t<purchase_id>" + (order.get("po_id") == null ? "" : order.get("po_id")) + "</purchase_id>\n" +
+                                "\t\t<remark>" + (order.getString("remark") == null ? "" : order.getString("remark")) + "</remark>\n" +
+                                "\t\t<stock_id>" + stockId + "</stock_id>\n" +
+                                "\t\t<supplier_id>" + (order.getInteger("supplier_id") == null ? "" : order.getInteger("supplier_id")) + "</supplier_id>\n" +
+                                "\t\t<NoEnvelope>Y</NoEnvelope>\n" +
+                                "\t\t<prevInOrderCodeTallied/>\n" +
+                                "\t</ServiceData>\n" +
+                                "</Service>"
+                        );
+                        JSTPurchaseOrderBean orderBean = new JSTPurchaseOrderBean();
+                        orderBean.setAppKey(JuShuiTanPostUtil.PARTNER_ID);
+                        orderBean.setState(GYStatus.INIT.getValue());
+                        orderBean.setOrderNo(po_id.toString());
+                        orderBean.setOmsRequest(sb.toString());
+                        orderBean.setCreateTime(new Date());
+                        orderBean.setTimes(0);
+                        orderBeans.add(orderBean);
+                    }
+                }
+                if (datas.size() < 30) break;
+            }
+            this.orderLogic.insertList(orderBeans);
+            if(!orderLogic.getSuccess())
+            {
+                SystemOutMessage.body( this.orderLogic.getSuccess()+ this.orderLogic.getMessage());
+                return;
+            }
+
+
+        }catch (Exception ex){
+            SystemOutMessage.body(" false  " + ex.getMessage());
+        }
+        SystemOutMessage.end("JuShuiTan_PurchaseOrder", sdf.format(new Date()));
+    }
+}

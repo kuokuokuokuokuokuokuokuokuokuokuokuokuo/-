@@ -1,0 +1,148 @@
+package com.ikats.scheduler.job;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.ikats.scheduler.entity.bean.JSTAllocateBean;
+import com.ikats.scheduler.entity.enumerate.GYStatus;
+import com.ikats.scheduler.logic.JSTAllocateLogic;
+import com.ikats.scheduler.util.JuShuiTanPostUtil;
+import com.ikats.scheduler.util.MD5Utils;
+import com.ikats.scheduler.util.SystemOutMessage;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.quartz.QuartzJobBean;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+
+
+/**
+ * @Author: Zhao Jianzhen
+ * @Date: Created in 10:02 2018/1/4
+ * @Description:
+ */
+public class JSTAllocateJob  extends QuartzJobBean {
+
+    @Autowired
+    private JSTAllocateLogic logic;
+
+    @Override
+    protected void executeInternal(JobExecutionContext jobExecutionContext) throws JobExecutionException {
+        String method = "other.inout.query";
+        Long ts = System.currentTimeMillis()/1000;
+
+        JSONObject object = new JSONObject();
+        object.put("modified_begin","2017-09-26 15:35:47");
+        object.put("modified_end","2017-10-01 15:36:06");
+        object.put("page_index",1);
+        object.put("page_size",30);
+        //sign	签名参数，按一定规则加密后的字符串 key,value  为传入的 get 参数，按传递顺序)(加密 key 中排除sign，method，partnerid)
+        // MD5(method +partnerid + (key1+value1+key2+value2+……) +partnerkey)*/
+        String url = JuShuiTanPostUtil.URL + "?token=" + JuShuiTanPostUtil.TOKEN + "&ts=" + ts + "&partnerid=" + JuShuiTanPostUtil.PARTNER_ID + "&method=" + method;
+        String objectValue = "token" + JuShuiTanPostUtil.TOKEN + "ts" + ts;
+        String sign = MD5Utils.md5(method + JuShuiTanPostUtil.PARTNER_ID + objectValue + JuShuiTanPostUtil.PARTNER_KEY);
+        url = url + "&sign=" + sign;
+        System.out.println(url);
+        String msg = object.toJSONString();
+        System.out.println(msg);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SystemOutMessage.start("JuShuiTan_GetSkuRegister",sdf.format(new Date()));
+        if(null == logic)
+        {
+            SystemOutMessage.body("false 系统异常");
+            return;
+        }
+
+        try{
+            ArrayList<JSTAllocateBean> beans = new ArrayList<JSTAllocateBean>();
+            String result = JuShuiTanPostUtil.sendPost(url,msg);
+            JSONObject jsStr = JSONObject.parseObject(result);
+            JSONArray datas = jsStr.getJSONArray("datas");
+            for (int i =0;i<datas.size();i++){
+                JSONObject allocate = (JSONObject) datas.get(i);
+                JSONArray items = allocate.getJSONArray("items");
+                Integer io_id = allocate.getInteger("io_id");
+                StringBuilder sb = new StringBuilder();
+                sb.append("<Service>\n" +
+                        "\t<ServiceURL>OMSAllocation</ServiceURL>\n" +
+                        "\t<ServiceAction>neteaseAllocationOut</ServiceAction>\n" +
+                        "\t<UserName>MeiPu</UserName>\n" +
+                        "\t<Platform>管易</Platform>\n" +
+                        "\t<ChannelName>管易</ChannelName>\n" +
+                        "\t<ServiceData>\n" +
+                        "\t\t<stock_id>HK1</stock_id>\n" +
+                        "\t\t<outbound_id>"+(allocate.getInteger("io_id") == null ? "":allocate.getInteger("io_id"))+"</outbound_id>\n" +
+                        "\t\t<type>1</type>\n" +
+                        "\t\t<reason></reason>\n" +
+                        "\t\t<inbound_warehouse></inbound_warehouse>\n" +
+                        "\t\t<inbound_id></inbound_id>\n" +
+                        "\t\t<remark></remark>\n" +
+                        "\t\t<is_dispatched></is_dispatched>\n" +
+                        "\t\t<contacts>"+(allocate.getString("receiver_name") ==null ? "":allocate.getString("receiver_name"))+"</contacts>\n" +
+                        "\t\t<phone>"+(allocate.getString("receiver_mobile") ==null ? "":allocate.getString("receiver_mobile"))+"</phone>\n" +
+                        "\t\t<address>"+(allocate.getString("receiver_address") ==null ? "":allocate.getString("receiver_address"))+"</address>\n" +
+                        "\t\t<items>\n");
+                if (items==null){
+                    sb.append( "\t\t\t<e>\n" +
+                            "\t\t\t\t<barcode></barcode>\n" +
+                            "\t\t\t\t<goods_name></goods_name>\n" +
+                            "\t\t\t\t<product_no></product_no>\n" +
+                            "\t\t\t\t<sku_id></sku_id>\n" +
+                            "\t\t\t\t<sku_desc></sku_desc>\n" +
+                            "\t\t\t\t<good_qty></good_qty>\n" +
+                            "\t\t\t\t<defective_qty>0</defective_qty>\n" +
+                            "\t\t\t\t<bad_qty>0</bad_qty>\n" +
+                            "\t\t\t\t<OrderItemId></OrderItemId>\n" +
+                            "\t\t\t</e> \n"+
+                            "\t\t</items>\n"+
+                            "\t</ServiceData>\n" +
+                            "</Service>"
+                    );
+                }else {
+                    for (int j=0;j<items.size();j++){
+                        JSONObject item = items.getJSONObject(j);
+                        sb.append( "\t\t\t<e>\n" +
+                                "\t\t\t\t<barcode></barcode>\n" +
+                                "\t\t\t\t<goods_name>"+(item.getString("name") ==null ? "":item.getString("name"))+"</goods_name>\n" +
+                                "\t\t\t\t<product_no></product_no>\n" +
+                                "\t\t\t\t<sku_id>"+(item.getString("sku_id") ==null ? "":item.getString("sku_id"))+"</sku_id>\n" +
+                                "\t\t\t\t<sku_desc>"+(item.getString("name") ==null ? "":item.getString("name"))+"</sku_desc>\n" +
+                                "\t\t\t\t<good_qty>"+(item.getInteger("qty") ==null ? "":item.getInteger("qty"))+"</good_qty>\n" +
+                                "\t\t\t\t<defective_qty>0</defective_qty>\n" +
+                                "\t\t\t\t<bad_qty>0</bad_qty>\n" +
+                                "\t\t\t\t<OrderItemId></OrderItemId>\n" +
+                                "\t\t\t</e> \n"
+                        );
+                    }
+                    sb.append("\t\t</items>\n"+
+                            "\t</ServiceData>\n" +
+                            "</Service>"
+                    );
+                }
+
+                JSTAllocateBean bean = new JSTAllocateBean();
+                bean.setAppKey(JuShuiTanPostUtil.PARTNER_ID);
+                bean.setState(GYStatus.INIT.getValue());
+                bean.setOutboundId(io_id.toString());
+                bean.setOmsRequest(sb.toString());
+                bean.setCreateTime(new Date());
+                bean.setTimes(0);
+                beans.add(bean);
+            }
+            this.logic.insertList(beans);
+            if(!logic.getSuccess())
+            {
+                SystemOutMessage.body( this.logic.getSuccess()+ this.logic.getMessage());
+                return;
+            }
+        }catch (Exception ex){
+            SystemOutMessage.body(" false  " + ex.getMessage());
+        }
+        SystemOutMessage.end("JuShuiTan_GetAllocate", sdf.format(new Date()));
+
+
+    }
+}

@@ -1,0 +1,26 @@
+#wharf Configuration
+wharf.container=spring,logback
+wharf.reference.check=false
+wharf.consumer.check=false
+
+jdbc.driverClassName=com.mysql.jdbc.Driver
+#Database Configuration 这个是中仓的连接
+#jdbc.url=jdbc:mysql://222.73.7.78:1433/scheduler
+#jdbc.url=jdbc:mysql://192.168.111.44:3306/scheduler
+
+#jdbc.url=jdbc:mysql://192.168.23.43:3306/scheduler
+#jdbc.username=scheduler
+#jdbc.password=Scheduler.Yihe-2017
+
+#正式四州的地址
+jdbc.url=jdbc:mysql://113.105.56.36:3306/scheduler
+jdbc.username=root
+jdbc.password=snjhtq3(A:Rb
+
+#Database Configuration postgres
+#jdbc.driverClassName=org.postgresql.Driver
+#jdbc.url=jdbc:postgresql://47.94.43.221:5432/quartz
+#jdbc.username=postgres
+#jdbc.password=ikats@2017!@#
+
+ibatis.transaction.AwareDataSource=dataSource

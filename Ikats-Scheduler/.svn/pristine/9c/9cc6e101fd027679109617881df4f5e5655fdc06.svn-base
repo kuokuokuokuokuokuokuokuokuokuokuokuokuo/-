@@ -1,0 +1,46 @@
+package com.ikats.scheduler.logic;
+
+//import com.ikats.scheduler.job.Q2;
+import org.quartz.*;
+import org.quartz.impl.StdSchedulerFactory;
+
+import java.util.*;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/11/1 14:30.
+ * @Description : Indulge in study , wasting away
+ */
+public class TestScheduler {
+    public static void main(String[] args) throws Exception {
+
+        java.util.Calendar calendar = new GregorianCalendar();
+        Date date = new Date();
+        calendar.setTime(date);
+        calendar.add(calendar.YEAR, 1);//把日期往后增加一年.整数往后推,负数往前移动
+//        calendar.add(calendar.DAY_OF_MONTH, 1);//把日期往后增加一个月.整数往后推,负数往前移动
+//        calendar.add(calendar.DATE, 1);//把日期往后增加一天.整数往后推,负数往前移动
+//        calendar.add(calendar.WEEK_OF_MONTH, 1);//把日期往后增加一个月.整数往后推,负数往前移动
+
+        JobDetail job = new JobDetail();
+//        job.setJobClass(Q2.class);
+        job.setName("job_lk_Q2");
+        job.setGroup("jgroup_lk_Q2");
+        CronTrigger trigger = new CronTrigger();
+        trigger.setName("trigger_lk_Q2");
+        trigger.setGroup("tgroup_lk_Q2");
+        trigger.setDescription("触发器的备注~");
+        trigger.setNextFireTime(new Date());
+        trigger.setPreviousFireTime(new Date());
+        trigger.setPriority(0);
+        trigger.setStartTime(new Date());
+        trigger.setEndTime(date);
+        trigger.setMisfireInstruction(0);
+        trigger.setCronExpression("0/5 * * * * ?");
+
+        SchedulerFactory schedulerFactory = new StdSchedulerFactory();
+        Scheduler scheduler = schedulerFactory.getScheduler();
+        scheduler.scheduleJob(job, trigger);
+        scheduler.start();
+    }
+}

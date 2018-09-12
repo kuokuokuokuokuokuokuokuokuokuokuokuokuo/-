@@ -1,0 +1,10 @@
+//LOGIN
+import LoginStore from './Login/LoginStore';
+import JobStore from './Job/JobListStore';
+
+const IndexStore= {
+    LoginStore,
+    JobStore
+};
+
+export default IndexStore;

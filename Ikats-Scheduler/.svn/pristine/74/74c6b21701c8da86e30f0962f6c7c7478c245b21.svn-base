@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+         http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <context:annotation-config />
+    <context:property-placeholder location="classpath:config.properties"/>
+    <import resource="classpath*:spring-datasource.xml"/>
+    <import resource="classpath*:spring-ibatis.xml"/>
+    <import resource="classpath*:wharf-service.xml"/>
+    <!--开启事物管理-->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+    <tx:annotation-driven transaction-manager="transactionManager" />
+
+    <bean id="customJobFactory" class="com.ikats.scheduler.job.CustomJobFactory"/>
+    <!-- 配置Quartz第三种方式,完全基于数据库,无需配置自定义的job类-->
+    <bean id="scheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="jobFactory" ref="customJobFactory" />
+        <property name="dataSource" ref="dataSource" />
+        <property name="configLocation" value="classpath:quartz.properties" />
+        <property name="applicationContextSchedulerContextKey"
+                  value="applicationContextKey" />
+        <property name="autoStartup" value="true" />
+    </bean>
+</beans>

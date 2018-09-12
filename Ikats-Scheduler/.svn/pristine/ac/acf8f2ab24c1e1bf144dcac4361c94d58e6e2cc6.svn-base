@@ -1,0 +1,34 @@
+package com.ikats.scheduler.util;
+
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
+
+/**
+ * rabbit mq 的基本配置信息
+ * @Author : liu kuo
+ * @Date : 2017/11/15 13:30.
+ * @Description : Indulge in study , wasting away
+ */
+public abstract class RabbitMqConfig
+{
+
+    protected Channel channel;
+    protected Connection connection;
+    protected String queueName;
+
+    public RabbitMqConfig(String queueName) throws IOException,TimeoutException{
+        this.queueName = queueName;
+        //创建连接工厂
+        ConnectionFactory cf = new ConnectionFactory();
+        cf.setHost("47.94.43.221");
+        cf.setUsername("liukuo");
+        cf.setPassword("123456");
+        cf.setVirtualHost("/lk_vhost");
+        cf.setPort(5672);
+        connection = cf.newConnection();
+        channel = connection.createChannel();
+    }
+}

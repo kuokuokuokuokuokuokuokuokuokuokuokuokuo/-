@@ -1,0 +1,4 @@
+##wharf properties
+wharf.timeout=15000
+wharf.reference.check=false
+wharf.consumer.check=false

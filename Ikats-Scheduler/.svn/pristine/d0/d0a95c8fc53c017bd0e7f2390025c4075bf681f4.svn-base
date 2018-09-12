@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ikats.scheduler.ibatis.mapper.JSTPurchaseOrderMapper" >
+
+	<!-- 聚水潭订单对接表 -->
+
+    <!-- 字段实体关系映射 -->
+    <resultMap id="BaseResultMap" type="com.ikats.scheduler.entity.bean.JSTPurchaseOrderBean" >
+        <id column="id" property="id" jdbcType="BIGINT" />  <!--  -->
+        <result column="order_no" property="orderNo" jdbcType="VARCHAR" />  <!--  -->
+        <result column="app_key" property="appKey" jdbcType="VARCHAR" />  <!--  -->
+        <result column="state" property="state" jdbcType="VARCHAR" />  <!-- 订单状态 -->
+        <result column="times" property="times" jdbcType="INTEGER" />  <!--  -->
+        <result column="oms_request" property="omsRequest" jdbcType="VARCHAR" />  <!-- 像oms发送的报文 -->
+        <result column="oms_response" property="omsResponse" jdbcType="VARCHAR" />  <!-- oms回执的报文 -->
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP" />  <!--  -->
+        <result column="send_time" property="sendTime" jdbcType="TIMESTAMP" />  <!--  -->
+        <result column="return_time" property="returnTime" jdbcType="TIMESTAMP" />  <!--  -->
+    </resultMap>
+
+    <!-- 字段列表 -->
+    <sql id="Base_Column_List" >
+ 	     id  <!--  -->
+ 	    ,order_no  <!--  -->
+ 	    ,app_key  <!--  -->
+ 	    ,state  <!-- 订单状态 -->
+ 	    ,times  <!--  -->
+ 	    ,oms_request  <!-- 像oms发送的报文 -->
+ 	    ,oms_response  <!-- oms回执的报文 -->
+ 	    ,create_time  <!--  -->
+ 	    ,send_time  <!--  -->
+ 	    ,return_time  <!--  -->
+    </sql>
+
+    <!-- 表名称 -->
+    <sql id="Base_Table_Name" >
+    jst_purchase_order
+    </sql>
+
+    <!-- 常用的查询条件集合 -->
+	<sql id="Filter_Where">
+		1=1
+		<if test="express.containsKey('id') and express.id !=''"> and id = '${express.id}' </if>
+		<if test="express.containsKey('orderNo') and express.orderNo !=''"> and order_no = '${express.orderNo}' </if>
+		<if test="express.containsKey('appKey') and express.appKey !=''"> and app_key = '${express.appKey}' </if>
+		<if test="express.containsKey('state') and express.state !=''"> and state = '${express.state}' </if>
+		<if test="express.containsKey('times') and express.times !=''"> and times = '${express.times}' </if>
+		<if test="express.containsKey('omsRequest') and express.omsRequest !=''"> and oms_request = '${express.omsRequest}' </if>
+		<if test="express.containsKey('omsResponse') and express.omsResponse !=''"> and oms_response = '${express.omsResponse}' </if>
+		<if test="express.containsKey('createTime') and express.createTime !=''"> and create_time = '${express.createTime}' </if>
+		<if test="express.containsKey('sendTime') and express.sendTime !=''"> and send_time = '${express.sendTime}' </if>
+		<if test="express.containsKey('returnTime') and express.returnTime !=''"> and return_time = '${express.returnTime}' </if>
+	</sql>
+
+    <!-- 保存单条记录 -->
+	<insert id="insert" parameterType="com.ikats.scheduler.entity.bean.JSTPurchaseOrderBean" useGeneratedKeys="true" keyProperty="id">
+		insert into <include refid="Base_Table_Name" />  (
+ 	    	 order_no
+ 	    	,app_key
+ 	    	,state
+ 	    	,times
+ 	    	,oms_request
+ 	    	,oms_response
+ 	    	,create_time
+			,send_time
+			,return_time
+		)
+		values (
+		#{orderNo,jdbcType=VARCHAR}
+		,#{appKey,jdbcType=VARCHAR}
+		,#{state,jdbcType=VARCHAR}
+		,#{times,jdbcType=INTEGER}
+		,#{omsRequest,jdbcType=VARCHAR}
+		,#{omsResponse,jdbcType=VARCHAR}
+		,#{createTime,jdbcType=TIMESTAMP}
+		,#{sendTime,jdbcType=TIMESTAMP}
+		,#{returnTime,jdbcType=TIMESTAMP}
+		)
+	</insert>
+
+
+    <!-- 保存一批记录 -->
+    <insert id="insertList" parameterType="java.util.List" >
+        insert into <include refid="Base_Table_Name" /> (
+ 	    	 order_no
+ 	    	,app_key
+ 	    	,state
+ 	    	,times
+ 	    	,oms_request
+ 	    	,oms_response
+ 	    	,create_time
+			,send_time  <!--  -->
+			,return_time  <!--  -->
+		)
+        values
+        <foreach collection="list" item="bean" index="index" separator="," >
+            (
+ 	    	     #{bean.orderNo,jdbcType=VARCHAR}
+ 	    	    ,#{bean.appKey,jdbcType=VARCHAR}
+ 	    	    ,#{bean.state,jdbcType=VARCHAR}
+ 	    	    ,#{bean.times,jdbcType=INTEGER}
+ 	    	    ,#{bean.omsRequest,jdbcType=VARCHAR}
+ 	    	    ,#{bean.omsResponse,jdbcType=VARCHAR}
+ 	    	    ,#{bean.createTime,jdbcType=TIMESTAMP}
+ 	    	    ,#{bean.sendTime,jdbcType=TIMESTAMP}
+ 	    	    ,#{bean.returnTime,jdbcType=TIMESTAMP}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 根据ID更新记录 -->
+	<update id="update" parameterType="com.ikats.scheduler.entity.bean.JSTPurchaseOrderBean">
+		update <include refid="Base_Table_Name" /> 
+		<set>
+			<if test="orderNo != null "> order_no = #{orderNo,jdbcType=VARCHAR}, </if>
+			<if test="appKey != null "> app_key = #{appKey,jdbcType=VARCHAR}, </if>
+			<if test="state != null "> state = #{state,jdbcType=VARCHAR}, </if>
+			<if test="times != null "> times = #{times,jdbcType=INTEGER}, </if>
+			<if test="omsRequest != null "> oms_request = #{omsRequest,jdbcType=VARCHAR}, </if>
+			<if test="omsResponse != null "> oms_response = #{omsResponse,jdbcType=VARCHAR}, </if>
+			<if test="createTime != null "> create_time = #{createTime,jdbcType=TIMESTAMP}, </if>
+			<if test="sendTime != null "> send_time = #{sendTime,jdbcType=TIMESTAMP}, </if>
+			<if test="returnTime != null "> return_time = #{returnTime,jdbcType=TIMESTAMP}, </if>
+		</set>
+		where id = #{id,jdbcType=BIGINT}
+	</update>
+
+	<!-- 根据订单号更新记录 -->
+	<update id="updateByOrderNo" parameterType="com.ikats.scheduler.entity.bean.JSTPurchaseOrderBean">
+		update <include refid="Base_Table_Name" />
+		<set>
+			<if test="appKey != null "> app_key = #{appKey,jdbcType=VARCHAR}, </if>
+			<if test="state != null "> state = #{state,jdbcType=VARCHAR}, </if>
+			<if test="times != null "> times = #{times,jdbcType=INTEGER}, </if>
+			<if test="omsRequest != null "> oms_request = #{omsRequest,jdbcType=VARCHAR}, </if>
+			<if test="omsResponse != null "> oms_response = #{omsResponse,jdbcType=VARCHAR}, </if>
+			<if test="createTime != null "> create_time = #{createTime,jdbcType=TIMESTAMP}, </if>
+			<if test="sendTime != null "> send_time = #{sendTime,jdbcType=TIMESTAMP}, </if>
+			<if test="returnTime != null "> return_time = #{returnTime,jdbcType=TIMESTAMP}, </if>
+		</set>
+		where order_no = #{orderNo,jdbcType=VARCHAR}
+	</update>
+
+    <!-- 根据ID删除记录 -->
+	<delete id="delete" parameterType="java.lang.Long">
+		delete from <include refid="Base_Table_Name" />
+		where id = #{id,jdbcType=BIGINT}
+	</delete>
+
+    <!-- 根据ID查询记录 -->
+	<select id="selectByKey" resultMap="BaseResultMap" parameterType="java.lang.Long">
+		select <include refid="Base_Column_List" />
+		from <include refid="Base_Table_Name" /> 
+		where id = #{id,jdbcType=BIGINT}
+    </select>
+
+	<!-- 根据订单号查询记录 -->
+	<select id="selectByNo" resultMap="BaseResultMap" parameterType="java.lang.String">
+		select <include refid="Base_Column_List" />
+		from <include refid="Base_Table_Name" />
+		where order_no = #{orderNo,jdbcType=VARCHAR}
+	</select>
+
+	<!-- 查询所有记录 -->
+	<select id="selectCount" resultType="java.lang.Long">
+		select count(1)
+		from <include refid="Base_Table_Name" /> 
+		where <include refid="Filter_Where" />
+	</select>
+
+	<!-- 筛选记录 -->
+	<select id="selectByQuery" resultMap="BaseResultMap">
+		select <include refid="Base_Column_List" />
+		from <include refid="Base_Table_Name" /> 
+		where <include refid="Filter_Where" />
+		order by id desc
+	</select>
+
+    <!-- 分页查询 -->
+    <select id="pageByQuery" resultMap="BaseResultMap">
+         select <include refid="Base_Column_List"/>
+         from <include refid="Base_Table_Name" /> 
+		 where <include refid="Filter_Where" />
+         order by id desc
+		limit ${page.pageSize} offset ${page.offset}
+    </select>
+
+	<select id="getOrderSendJob" resultMap="BaseResultMap">
+		select
+		<include refid="Base_Column_List"/>
+		from
+		<include refid="Base_Table_Name"/>
+		where state = '0' and times &lt; 3
+		order by id ASC limit 50 offset 0
+	</select>
+</mapper>

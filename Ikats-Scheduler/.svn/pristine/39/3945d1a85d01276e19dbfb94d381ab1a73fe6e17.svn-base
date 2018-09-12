@@ -1,0 +1,198 @@
+package com.ikats.scheduler.service;
+
+import com.ikats.chigoose.dms.entity.enumerate.StatusCode;
+import com.ikats.scheduler.entity.dto.RecordDto;
+import com.ikats.scheduler.entity.query.RecordQuery;
+import com.ikats.scheduler.logic.GYRecordLogic;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Service
+ * 管易对接的报文 , 数据记录表
+ */
+@Transactional
+@Service
+public class GYRecordService implements IGYRecordService {
+
+	@Autowired
+	private GYRecordLogic logic;
+	
+	/**
+	 * 服务:添加管易对接的报文 , 数据记录表
+	 * @param query
+	 * @return RecordDto
+	 */
+	public RecordDto insert(RecordQuery query)
+    {
+        RecordDto result = new RecordDto();
+        try{
+                logic.clear();
+                logic.insert(query.getDataRow());
+                result.setCode(logic.getCode());
+                result.setSuccess(logic.getSuccess());
+                result.setMessage(logic.getMessage());
+         }catch (Exception ex){
+                result.setSuccess(false);
+                result.setMessage("添加错误");
+                result.setCode(StatusCode.ERROR_INSERT.getValue());
+          }
+          return result;
+    }
+
+	/**
+	 * 服务:多行添加管易对接的报文 , 数据记录表
+	 * @param query
+	 * @return RecordDto
+	 */
+	public RecordDto insertList(RecordQuery query)
+    {
+        RecordDto result = new RecordDto();
+        try{
+                logic.clear();
+                logic.insertList(query.getDataTable());
+                result.setCode(logic.getCode());
+                result.setSuccess(logic.getSuccess());
+                result.setMessage(logic.getMessage());
+         }catch (Exception ex){
+                result.setSuccess(false);
+                result.setMessage("添加错误");
+                result.setCode(StatusCode.ERROR_INSERT.getValue());
+          }
+          return result;
+    }
+
+	/**
+	 * 服务:删除管易对接的报文 , 数据记录表
+	 * @param query
+	 * @return RecordDto
+	 */
+	public RecordDto delete(RecordQuery query)
+    {
+        RecordDto result = new RecordDto();
+        try{
+                logic.clear();
+                logic.delete(query.getId());
+                result.setCode(logic.getCode());
+                result.setSuccess(logic.getSuccess());
+                result.setMessage(logic.getMessage());
+         }catch (Exception ex){
+                result.setSuccess(false);
+                result.setMessage("删除错误");
+                result.setCode(StatusCode.ERROR_DELETE.getValue());
+          }
+          return result;
+    }
+
+	/**
+	 * 服务:更新管易对接的报文 , 数据记录表
+	 * @param query
+	 * @return RecordDto
+	 */
+	public RecordDto update(RecordQuery query)
+    {
+        RecordDto result = new RecordDto();
+        try{
+                logic.clear();
+                logic.update(query.getDataRow());
+                result.setCode(logic.getCode());
+                result.setSuccess(logic.getSuccess());
+                result.setMessage(logic.getMessage());
+         }catch (Exception ex){
+                result.setSuccess(false);
+                result.setMessage("跟新错误");
+                result.setCode(StatusCode.ERROR_UPDATE.getValue());
+          }
+          return result;
+    }
+
+	/**
+	 * 服务:获取单行管易对接的报文 , 数据记录表
+	 * @param query
+	 * @return RecordDto
+	 */
+	public RecordDto selectByKey(RecordQuery query)
+    {
+        RecordDto result = new RecordDto();
+        try{
+                logic.clear();
+                result.setDataRow(logic.selectByKey(query.getId()));
+                result.setCode(logic.getCode());
+                result.setSuccess(logic.getSuccess());
+                result.setMessage(logic.getMessage());
+         }catch (Exception ex){
+                result.setSuccess(false);
+                result.setMessage("获取错误");
+                result.setCode(StatusCode.ERROR_QUERY.getValue());
+          }
+          return result;
+    }
+
+	/**
+	 * 服务:获取所有管易对接的报文 , 数据记录表计数
+	 * @param query
+	 * @return RecordDto
+	 */
+	public RecordDto selectCount(RecordQuery query)
+    {
+        RecordDto result = new RecordDto();
+        try{
+                logic.clear();
+                result.setCount(logic.selectCount(query.getExpress()));
+                result.setCode(logic.getCode());
+                result.setSuccess(logic.getSuccess());
+                result.setMessage(logic.getMessage());
+         }catch (Exception ex){
+                result.setSuccess(false);
+                result.setMessage("获取错误");
+                result.setCode(StatusCode.ERROR_QUERY.getValue());
+          }
+          return result;
+    }
+
+	/**
+	 * 服务:查询管易对接的报文 , 数据记录表
+	 * @param query
+	 * @return RecordDto
+	 */
+	public RecordDto selectByQuery(RecordQuery query)
+    {
+        RecordDto result = new RecordDto();
+        try{
+                logic.clear();
+                result.setDataTable(logic.selectByQuery(query.getExpress()));
+                result.setCode(logic.getCode());
+                result.setSuccess(logic.getSuccess());
+                result.setMessage(logic.getMessage());
+         }catch (Exception ex){
+                result.setSuccess(false);
+                result.setMessage("获取错误");
+                result.setCode(StatusCode.ERROR_QUERY.getValue());
+          }
+          return result;
+    }
+
+	/**
+	 * 服务:翻页查询管易对接的报文 , 数据记录表
+	 * @param query
+	 * @return RecordDto
+	 */
+	public RecordDto pageByQuery(RecordQuery query)
+    {
+        RecordDto result = new RecordDto();
+        try{
+                logic.clear();
+                result.setDataTable(logic.pageByQuery(query.getPageNum(),query.getPageSize(),query.getExpress()));
+                result.setCode(logic.getCode());
+                result.setSuccess(logic.getSuccess());
+                result.setMessage(logic.getMessage());
+         }catch (Exception ex){
+                result.setSuccess(false);
+                result.setMessage("获取错误");
+                result.setCode(StatusCode.ERROR_QUERY.getValue());
+          }
+          return result;
+    }
+
+}

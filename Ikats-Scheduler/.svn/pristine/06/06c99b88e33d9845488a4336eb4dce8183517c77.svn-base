@@ -1,0 +1,32 @@
+package com.ikats.scheduler.controller;
+
+import com.ikats.scheduler.entity.dto.DmsSettlementRecordDto;
+import com.ikats.scheduler.entity.query.DmsSettlementRecordQuery;
+import com.ikats.scheduler.service.IDmsSettlementRecordService;
+import com.ikats.wharf.config.annotation.Reference;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/11/17 14:42.
+ * @Description : Indulge in study , wasting away
+ */
+@Controller
+@RequestMapping("DmsSettlement")
+public class DmsSettlementRecordController
+{
+
+    @Reference(timeout = 300000)
+    private IDmsSettlementRecordService service;
+
+    @ResponseBody
+    @RequestMapping(value = "record",method = {RequestMethod.POST})
+    public DmsSettlementRecordDto record(@RequestBody DmsSettlementRecordQuery query)
+    {
+        return this.service.record(query);
+    }
+}

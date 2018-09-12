@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script type="text/javascript" src="/base/jquery-3.2.1.min.js"></script>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<script type="text/javascript">
+    $(document).ready(function(){
+        $("#pause").click(function()
+        {
+            $.ajax({
+                type: "POST",
+                url: "http://localhost:8080/scheduler/pause.action",
+                data: JSON.stringify(""),
+                dataType: "json",
+                contentType: "application/json",
+                success: function(res){
+                    alert(res)
+                },
+            });
+        })
+    });
+
+    $(document).ready(function(){
+        $("#resume").click(function()
+        {
+            $.ajax({
+                type: "POST",
+                url: "http://localhost:8080/scheduler/resume.action",
+                data: JSON.stringify(""),
+                dataType: "json",
+                contentType: "application/json",
+                success: function(res){
+                    alert(res)
+                },
+            });
+        })
+    });
+
+    $(document).ready(function(){
+        $("#delete").click(function()
+        {
+            $.ajax({
+                type: "POST",
+                url: "http://localhost:8080/scheduler/delete.action",
+                data: JSON.stringify(""),
+                dataType: "json",
+                contentType: "application/json",
+                success: function(res){
+                    alert(res)
+                },
+            });
+        })
+    });
+
+    $(document).ready(function(){
+        $("#new").click(function()
+        {
+            $.ajax({
+                type: "POST",
+                url: "http://localhost:8080/scheduler/new.action",
+                data: JSON.stringify(""),
+                dataType: "json",
+                contentType: "application/json",
+                success: function(res){
+                    alert(res)
+                },
+            });
+        })
+    });
+
+    $(document).ready(function(){
+        $("#update").click(function()
+        {
+            $.ajax({
+                type: "POST",
+                url: "http://localhost:8080/scheduler/update.action",
+                data: JSON.stringify(""),
+                dataType: "json",
+                contentType: "application/json",
+                success: function(res){
+                    alert(res)
+                },
+            });
+        })
+    });
+
+    $(document).ready(function(){
+        $("#all").click(function()
+        {
+            $.ajax({
+                type: "POST",
+                url: "http://localhost:8080/scheduler/jobs.action",
+                data: JSON.stringify(""),
+                dataType: "json",
+                contentType: "application/json",
+                success: function(res){
+                    alert(res)
+                },
+            });
+        })
+    });
+</script>
+<button id="pause">暂停</button>
+<div>
+    <button id="resume">重启</button>
+</div>
+<div>
+    <button id="delete">删除</button>
+</div>
+<div>
+    <button id="new">新建</button>
+</div>
+<div>
+    <button id="update">修改</button>
+</div>
+<div>
+    <button id="all">所有</button>
+</div>
+</body>
+</html>

@@ -1,0 +1,174 @@
+package com.ikats.scheduler.logic;
+
+import com.ikats.scheduler.entity.bean.JSTSkuBean;
+import com.ikats.scheduler.entity.enumerate.GYStatus;
+import com.ikats.scheduler.repository.IJSTSkuRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Logic
+ * <p>
+ * 聚水潭商品对接表
+ * <p>
+ * 自动生成
+ *
+ * @author over3
+ * @version 1.0, 2017-12-05 17:29:55
+ */
+@Component
+public class JSTSkuLogic extends AbstractLogic {
+
+    @Autowired
+    private IJSTSkuRepository repository;
+
+    /**
+     * 添加单条记录
+     */
+    public void insert(JSTSkuBean bean) {
+        int count = repository.insert(bean);
+        if (count <= 0) {
+            this.setSuccess(false);
+            this.setMessage("没有新增");
+
+            return;
+        }
+        this.setSuccess(true);
+    }
+
+    /**
+     * 添加一批记录
+     */
+    public void insertList(List<JSTSkuBean> list)
+    {
+        //判断订单是否存在
+        for (Iterator iter = list.iterator(); iter.hasNext(); )
+        {
+            JSTSkuBean bean = (JSTSkuBean) iter.next();
+            List<JSTSkuBean> holdBean = this.repository.selectByNo(bean.getSkuCode());
+            //订单已存在
+            if(null != holdBean && holdBean.size() != 0)
+            {
+                iter.remove();
+//                if(!holdBean.get(0).getState().equals(GYStatus.INIT.getValue()) && !bean.getOmsRequest().equals(holdBean.get(0).getOmsRequest()))
+//                {
+//                    //发送报文已修改,且历史订单尚未处理的,进行更新
+//                    this.repository.updateByCode(bean);
+//                }
+                if(!bean.getOmsRequest().equals(holdBean.get(0).getOmsRequest()))
+                {
+                    //聚水潭备案数据修改后,修改保存的数据
+                    this.repository.updateByCode(bean);
+                }
+            }
+        }
+        if(list.size() == 0)
+        {
+            this.setSuccess(false);
+            this.setMessage("---------JST商品---------未有新的数据录入");
+            return;
+        }
+        int count = repository.insertList(list);
+        if (count <= 0) {
+            this.setSuccess(false);
+            this.setMessage("没有新增");
+
+            return;
+        }
+        this.setSuccess(true);
+    }
+
+    /**
+     * 更新记录
+     */
+    public void update(JSTSkuBean bean) {
+        int count = repository.update(bean);
+        if (count <= 0) {
+            this.setSuccess(false);
+            this.setMessage("修改失败");
+
+            return;
+        }
+        this.setSuccess(true);
+    }
+
+    /**
+     * 删除记录
+     */
+    public void delete(Long id) {
+        int count = repository.delete(id);
+        if (count <= 0) {
+            this.setSuccess(false);
+            this.setMessage("删除失败");
+            return;
+        }
+        this.setSuccess(true);
+    }
+
+    /**
+     * 得到一条记录
+     */
+    public JSTSkuBean selectByKey(Long id) {
+        JSTSkuBean bean = repository.selectByKey(id);
+        if (bean == null) {
+            this.setSuccess(false);
+            this.setMessage("没有找到");
+            return null;
+        }
+        return bean;
+    }
+
+    /**
+     * 所有记录计数
+     */
+    public Long selectCount(Map<String, String> express) {
+        Long count = repository.selectCount(express);
+        this.setSuccess(true);
+        return count;
+    }
+
+    /**
+     * 得到查询记录
+     */
+    public List<JSTSkuBean> selectByQuery(Map<String, String> express) {
+        List<JSTSkuBean> beanList = repository.selectByQuery(express);
+        if (beanList.size() == 0) {
+            this.setSuccess(false);
+            this.setMessage("没有找到");
+            return null;
+        }
+        this.setSuccess(true);
+        return beanList;
+    }
+
+    /**
+     * 得到翻页查询记录
+     */
+    public List<JSTSkuBean> pageByQuery(int pageNum, int pageSize, Map<String, String> express) {
+        List<JSTSkuBean> beanList = repository.pageByQuery(pageNum, pageSize, express);
+        if (beanList.size() == 0) {
+            this.setSuccess(false);
+            this.setMessage("没有找到");
+            return null;
+        }
+        this.setSuccess(true);
+        return beanList;
+    }
+
+    public List<JSTSkuBean> getSkuSendJob()
+    {
+        List<JSTSkuBean> beanList = this.repository.getSkuSendJob();
+        if(beanList.size() == 0)
+        {
+            this.setSuccess(false);
+            this.setMessage("未找到待发送的商品备案任务!");
+            return null;
+        }
+        this.setSuccess(true);
+        return beanList;
+    }
+}

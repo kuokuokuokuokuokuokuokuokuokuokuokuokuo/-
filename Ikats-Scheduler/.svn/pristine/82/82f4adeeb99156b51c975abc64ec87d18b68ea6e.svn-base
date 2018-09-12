@@ -1,0 +1,98 @@
+package com.ikats.scheduler.job;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONPath;
+import com.ikats.scheduler.util.GuanYiPostUtil;
+import com.ikats.scheduler.util.OmsPostUtil;
+
+/**
+ * @Author : liu kuo
+ * @Date : 2017/12/1 17:40.
+ * @Description : Indulge in study , wasting away
+ */
+public class GuanYiDocking
+{
+    public static void main(String[] args) throws Exception
+    {
+
+        JSONObject json = new JSONObject();
+        json.put("appkey", GuanYiPostUtil.APPKEY);
+        json.put("sessionkey", GuanYiPostUtil.SESSIONKEY);
+        json.put("method","gy.erp.items.get");
+        json.put("page_no","1");
+        json.put("page_size","10");
+
+        String jsonString = json.toJSONString();
+
+        String sign = GuanYiPostUtil.sign(jsonString, GuanYiPostUtil.SECRET);
+        json.put("sign",sign);
+        String param = json.toJSONString();
+
+        String result = GuanYiPostUtil.sendPost(GuanYiPostUtil.URL,param);
+        System.out.println(result);
+
+        String omsXml = jsonConvertXml(result);
+        String omsResult = OmsPostUtil.PostXml(omsXml);
+
+        System.out.println("--- OMS ---");
+        System.out.println("--- OMS ---" + omsResult);
+    }
+
+    private static String jsonConvertXml(String jsonString)
+    {
+        JSONObject json = (JSONObject) JSONPath.read(jsonString,"$");
+        String success = json.getString("success");
+        JSONArray items = (JSONArray)json.get("items");
+
+        JSONObject good = (JSONObject)items.get(1);
+        JSONArray skus = (JSONArray) good.get("skus");
+
+        JSONObject sku = (JSONObject)skus.get(0);
+
+        String omsXml = "<Service>\n" +
+                        "  <ServiceURL>SKURegister</ServiceURL>\n" +
+                        "  <ServiceAction>TRANSACTION</ServiceAction>\n" +
+                        "  <ServiceData>\n" +
+                        "    <SKURegister>\n" +
+                        "      <ClientId>zhongcang</ClientId>\n" +
+                        "      <SKUCode>"+ sku.getString("code") +"</SKUCode>\n" +
+                        "      <GoodsItemNo>889532334223</GoodsItemNo>\n" +
+                        "      <SKUName>"+ sku.getString("name") +"</SKUName>\n" +
+                        "      <SKUPrice>"+ sku.getString("sales_price") +"</SKUPrice>\n" +
+                        "      <SKUCount></SKUCount>\n" +
+                        "      <SKUModel>颜色:深粉红色;</SKUModel>\n" +
+                        "      <MailTaxNo>"+ sku.getString("tax_no") + "</MailTaxNo>\n" +
+                        "      <HsCode>4202210090</HsCode>\n" +
+                        "      <WarehouseNo>ZCKJ</WarehouseNo>\n" +
+                        "      <WarehouseLocation>ZCKJ</WarehouseLocation>\n" +
+                        "      <DeclareMeasureUnit></DeclareMeasureUnit>\n" +
+                        "      <ProductionMarketingCountry>502</ProductionMarketingCountry>\n" +
+                        "      <GoodsNetWeight>"+ sku.getString("weight") + "</GoodsNetWeight>\n" +
+                        "      <GoodsRoughWeight>0.68</GoodsRoughWeight>\n" +
+                        "      <Length></Length> \n  " +
+                        "     <Width></Width> \n  " +
+                        "     <Height></Height>\n" +
+                        "      <Description></Description>\n" +
+                        "      <LabelCode>889532334223</LabelCode>\n" +
+                        "      <LabelCode1></LabelCode1>\n" +
+                        "      <LabelCode2></LabelCode2>\n" +
+                        "      <LabelCode3></LabelCode3>\n" +
+                        "      <SKUImageURL1></SKUImageURL1>\n" +
+                        "      <SKUImageURL2></SKUImageURL2>\n" +
+                        "      <SKUImageURL3></SKUImageURL3>\n" +
+                        "      <SKUImageURL4></SKUImageURL4>\n" +
+                        "      <SKUImageURL5></SKUImageURL5>\n" +
+                        "      <FirstUnit></FirstUnit>\n" +
+                        "      <SecondUnit></SecondUnit>\n" +
+                        "     <Brand></Brand>\n" +
+                        "     <DueDays></DueDays>\n" +
+                        "    <WarningStock></WarningStock>\n" +
+                        "    </SKURegister>\n" +
+                        "  </ServiceData>\n" +
+                        "</Service>\n";
+
+        System.out.println(omsXml);
+        return omsXml;
+    }
+}

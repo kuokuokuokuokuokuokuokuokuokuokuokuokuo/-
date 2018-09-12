@@ -1,0 +1,74 @@
+@import url('http://at.alicdn.com/t/font_382311_g3kge51ssjicc8fr.css');
+
+//logo图标
+.logo {
+  width: 120px;
+  height: 31px;
+  border-radius: 6px;
+  margin: 16px 28px 16px 0;
+  float: left;
+  background: url(/image/quartz_log.jpg) no-repeat center;
+}
+.btn{
+  margin-right: 10px;
+  //border: none!important;
+  width:100px;
+}
+.breadcrumb{
+  line-height:42px;
+  padding-left: 10px;
+}
+.datepickerWidth{
+  width:100%
+}
+.TranStyle2{
+  padding:10px 0!important;
+  text-align:center!important;
+}
+
+.TranStyle2:hover{
+  background-color: #E7F4FB;
+}
+
+.TranStyle2:nth-child(2n+1){
+  background-color: #f2f2f2;
+}
+.TranStyle2:nth-child(2n+1):hover{
+  background-color: #E7F4FB;
+}
+.hStyle{
+  text-align: center;
+  font-size: 18px;
+  color: rgb(80, 172, 226);
+  margin: 15px 0 10px 0;
+}
+
+.spanTitle{
+  color: #333;
+}
+.spanStyle{
+  color: #768194;
+}
+.ant-form-item-label label{
+  font-weight: inherit;
+}
+.hiddenText{
+  overflow: hidden;
+  text-overflow:ellipsis;
+  white-space: nowrap;
+}
+.pd{
+  padding:10px;
+}
+.middle{
+  text-align: center;
+}
+.left{
+  text-align: left;
+}
+.right{
+  text-align: right;
+}
+.fullWidth{
+  width:100%!important;
+}

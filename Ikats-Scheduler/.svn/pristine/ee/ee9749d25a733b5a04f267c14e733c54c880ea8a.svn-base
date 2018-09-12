@@ -1,0 +1,179 @@
+package com.ikats.scheduler.logic;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import com.ikats.chigoose.dms.entity.enumerate.StatusCode;
+import com.ikats.scheduler.entity.bean.GYSkuBean;
+import com.ikats.scheduler.entity.enumerate.GYStatus;
+import com.ikats.scheduler.repository.IGYSkuRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+/**
+ * Logic
+ * <p>
+ * 管易商品对接表
+ * <p>
+ * 自动生成
+ *
+ * @author over3
+ * @version 1.0, 2017-12-05 17:29:55
+ */
+@Component
+public class GYSkuLogic extends AbstractLogic {
+
+    @Autowired
+    private IGYSkuRepository repository;
+
+    /**
+     * 添加单条记录
+     */
+    public void insert(GYSkuBean bean) {
+        int count = repository.insert(bean);
+        if (count <= 0) {
+            this.setSuccess(false);
+            this.setMessage("没有新增");
+            this.setCode(StatusCode.INFO_NO_INSERT.getValue());
+            return;
+        }
+        this.setSuccess(true);
+    }
+
+    /**
+     * 添加一批记录
+     */
+    public void insertList(List<GYSkuBean> list)
+    {
+        //判断订单是否存在
+        for (Iterator iter = list.iterator(); iter.hasNext(); )
+        {
+            GYSkuBean bean = (GYSkuBean) iter.next();
+            GYSkuBean holdBean = this.repository.selectByNo(bean.getSkuCode());
+            //订单已存在
+            if(null != holdBean)
+            {
+                //订单已存在且发送报文和历史相等 , 舍弃
+                if(bean.getOmsRequest().equals(holdBean.getOmsRequest()))
+                {
+                    iter.remove();
+                }
+                else if(holdBean.getState().equals(GYStatus.INIT.getValue()))
+                {
+                    //发送报文已修改,且历史订单尚未处理的,进行更新
+                    this.repository.updateByCode(bean);
+                    System.out.println("^^^^^^^^^^^^^^^^^^^^^ this is update ^^^^^^^^^^^^^^^^^^^^");
+                }
+            }
+        }
+        if(list.size() == 0)
+        {
+            this.setSuccess(false);
+            this.setMessage("---------GY商品---------未有新的数据录入");
+            return;
+        }
+        int count = repository.insertList(list);
+        if (count <= 0) {
+            this.setSuccess(false);
+            this.setMessage("没有新增");
+            this.setCode(StatusCode.INFO_NO_INSERT.getValue());
+            return;
+        }
+        this.setSuccess(true);
+    }
+
+    /**
+     * 更新记录
+     */
+    public void update(GYSkuBean bean) {
+        int count = repository.update(bean);
+        if (count <= 0) {
+            this.setSuccess(false);
+            this.setMessage("修改失败");
+            this.setCode(StatusCode.INFO_NO_INSERT.getValue());
+            return;
+        }
+        this.setSuccess(true);
+    }
+
+    /**
+     * 删除记录
+     */
+    public void delete(Long id) {
+        int count = repository.delete(id);
+        if (count <= 0) {
+            this.setSuccess(false);
+            this.setMessage("删除失败");
+            this.setCode(StatusCode.INFO_NO_DELETE.getValue());
+            return;
+        }
+        this.setSuccess(true);
+    }
+
+    /**
+     * 得到一条记录
+     */
+    public GYSkuBean selectByKey(Long id) {
+        GYSkuBean bean = repository.selectByKey(id);
+        if (bean == null) {
+            this.setSuccess(false);
+            this.setMessage("没有找到");
+            this.setCode(StatusCode.INFO_NO_QUERY.getValue());
+            return null;
+        }
+        return bean;
+    }
+
+    /**
+     * 所有记录计数
+     */
+    public Long selectCount(Map<String, String> express) {
+        Long count = repository.selectCount(express);
+        this.setSuccess(true);
+        return count;
+    }
+
+    /**
+     * 得到查询记录
+     */
+    public List<GYSkuBean> selectByQuery(Map<String, String> express) {
+        List<GYSkuBean> beanList = repository.selectByQuery(express);
+        if (beanList.size() == 0) {
+            this.setSuccess(false);
+            this.setMessage("没有找到");
+            this.setCode(StatusCode.INFO_NO_QUERY.getValue());
+            return null;
+        }
+        this.setSuccess(true);
+        return beanList;
+    }
+
+    /**
+     * 得到翻页查询记录
+     */
+    public List<GYSkuBean> pageByQuery(int pageNum, int pageSize, Map<String, String> express) {
+        List<GYSkuBean> beanList = repository.pageByQuery(pageNum, pageSize, express);
+        if (beanList.size() == 0) {
+            this.setSuccess(false);
+            this.setMessage("没有找到");
+            this.setCode(StatusCode.INFO_NO_QUERY.getValue());
+            return null;
+        }
+        this.setSuccess(true);
+        return beanList;
+    }
+
+    public List<GYSkuBean> getSkuSendJob()
+    {
+        List<GYSkuBean> beanList = this.repository.getSkuSendJob();
+        if(beanList.size() == 0)
+        {
+            this.setSuccess(false);
+            this.setMessage("未找到待发送的商品备案任务!");
+            this.setCode(StatusCode.INFO_NO_QUERY.getValue());
+            return null;
+        }
+        this.setSuccess(true);
+        return beanList;
+    }
+}
